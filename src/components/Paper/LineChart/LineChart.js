@@ -133,7 +133,7 @@ class LineChart extends Component {
                 }
             }
 
-            this.graph.maxY = 2;
+            this.graph.maxY = 1;
 
             this.setMaxY(counters);
 
@@ -240,8 +240,8 @@ class LineChart extends Component {
             }
         }
 
-        if (!maxY || maxY < 2) {
-            maxY = 2;
+        if (!maxY || maxY < 1) {
+            maxY = 1;
         }
 
         this.graph.autoMaxY = maxY;
