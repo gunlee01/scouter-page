@@ -30,7 +30,8 @@ class XLog extends Component {
         originY: null,
         preview: {
             width: 100
-        }
+        },
+        opacity : 0.3
     };
 
     lastStartTime = null;
@@ -43,7 +44,7 @@ class XLog extends Component {
         super(props);
 
         this.state = {
-            elapsed: common.getLocalSettingData(XLOG_ELAPSED, 2000)
+            elapsed: this.props.data.paramMaxElapsed ? Number(this.props.data.paramMaxElapsed) : common.getLocalSettingData(XLOG_ELAPSED, 2000)
         }
     }
 
@@ -78,10 +79,31 @@ class XLog extends Component {
             return true;
         }
 
+        if (this.props.longTerm !== nextProps.longTerm) {
+            return true;
+        }
+
+        if (this.props.xlogHistoryDoing !== nextProps.xlogHistoryDoing) {
+            return true;
+        }
+        
+        if (nextProps.filter && JSON.stringify(nextProps.filter) !== JSON.stringify(this.props.filter)) {
+            return true;
+        }
+
+        if (nextProps.filterMap && JSON.stringify(nextProps.filterMap) !== JSON.stringify(this.props.filterMap)) {
+            return true;
+        }
+
         return false;
     }
 
     componentDidMount() {
+        if (this.props.config.colorType === "white") {
+            this.graph.opacity = 0.3;
+        } else {
+            this.graph.opacity = 0.6;
+        }
         this.graph.timeFormat = this.props.config.minuteFormat;
         this.graphInit();
     }
@@ -111,35 +133,60 @@ class XLog extends Component {
         if (this.lastPastTimestamp !== this.props.pastTimestamp) {
             this.lastPastTimestamp = this.props.pastTimestamp;
             this.clear();
-            this.redraw();
+            this.redraw(this.props.filter);
         } else if (this.lastPastTimestamp === this.props.pastTimestamp && this.lastPageCnt !== this.props.pageCnt) {
             this.lastPageCnt = this.props.pageCnt;
-            this.draw(this.props.data.newXLogs);
+            this.draw(this.props.data.newXLogs, this.props.filter);
         } else {
-            this.draw(this.props.data.newXLogs);
+            this.draw(this.props.data.newXLogs, this.props.filter);
+        }
+        
+        if (this.props.filter && JSON.stringify(prevProps.filter) !== JSON.stringify(this.props.filter)) {
+            this.clear();
+            this.redraw(this.props.filter);
+        }
+
+        if (this.props.filterMap && JSON.stringify(prevProps.filterMap) !== JSON.stringify(this.props.filterMap)) {
+            this.clear();
+            this.redraw(this.props.filter);
         }
     };
 
+    resizeTimer = null;
     graphResize = () => {
-        let box = this.refs.xlogViewer.parentNode.parentNode.parentNode;
-
-        let currentWidth = 0;
-        if (this.props.box.values.showPreview === "Y") {
-            currentWidth = box.offsetWidth - this.graph.margin.left - this.graph.preview.width;
-        } else {
-            currentWidth = box.offsetWidth - this.graph.margin.left - this.graph.margin.right;
+        if (this.resizeTimer) {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = null;
         }
 
-        if ((currentWidth !== this.graph.width) || (this.graph.height !== box.offsetHeight - this.graph.margin.top - this.graph.margin.bottom - 27)) {
-            this.graphInit();
-        }
+        this.resizeTimer = setTimeout(() => {
+            let box = this.refs.xlogViewer.parentNode.parentNode.parentNode;
+
+            let currentWidth = 0;
+            if (this.props.box.values.showPreview === "Y") {
+                currentWidth = box.offsetWidth - this.graph.margin.left - this.graph.preview.width;
+            } else {
+                currentWidth = box.offsetWidth - this.graph.margin.left - this.graph.margin.right;
+            }
+
+            if ((currentWidth !== this.graph.width) || (this.graph.height !== box.offsetHeight - this.graph.margin.top - this.graph.margin.bottom - 27)) {
+                this.graphInit();
+            }
+        }, 300);
     };
 
+    
 
-    draw = (xlogs) => {
+    draw = async (xlogs, filter) => {
         if (this.refs.xlogViewer && xlogs) {
             let context = d3.select(this.refs.xlogViewer).select("canvas").node().getContext("2d");
-            xlogs.forEach((d, i) => {
+            
+            //let datas = common.getFilteredData(xlogs, filter);
+            let datas = await common.getFilteredData0(xlogs, filter, this.props);
+            datas.forEach((d, i) => {
+                if (!this.props.filterMap[d.objHash]) {
+                    return;
+                }
                 let x = this.graph.x(d.endTime);
                 let y = this.graph.y(d.elapsed);
 
@@ -178,7 +225,7 @@ class XLog extends Component {
 
         if (clear) {
             this.clear();
-            this.redraw();
+            this.redraw(this.props.filter);
         }
     };
 
@@ -196,8 +243,8 @@ class XLog extends Component {
         context.clearRect(0, 0, canvas.width, canvas.height);
     };
 
-    redraw = () => {
-        this.draw(this.props.data.xlogs);
+    redraw = (filter) => {
+        this.draw(this.props.data.xlogs, filter);
     };
 
     updateYAxis = (clear) => {
@@ -220,7 +267,7 @@ class XLog extends Component {
 
         if (clear) {
             this.clear();
-            this.redraw();
+            this.redraw(this.props.filter);
         }
     };
 
@@ -296,10 +343,10 @@ class XLog extends Component {
         }).ticks(yAxisCount));
 
         // X축 단위 그리드 그리기
-        svg.append("g").attr("class", "grid-x").style("stroke-dasharray", "5 5").style("opacity", "0.3").attr("transform", "translate(0," + this.graph.height + ")").call(d3.axisBottom(this.graph.x).tickSize(-this.graph.height).tickFormat("").ticks(xAxisCount));
+        svg.append("g").attr("class", "grid-x").style("stroke-dasharray", "5 5").style("opacity", this.graph.opacity).attr("transform", "translate(0," + this.graph.height + ")").call(d3.axisBottom(this.graph.x).tickSize(-this.graph.height).tickFormat("").ticks(xAxisCount));
 
         // Y축 단위 그리드 그리기
-        svg.append("g").attr("class", "grid-y").style("stroke-dasharray", "5 5").style("opacity", "0.3").call(d3.axisLeft(this.graph.y).tickSize(-this.graph.width).tickFormat("").ticks(yAxisCount));
+        svg.append("g").attr("class", "grid-y").style("stroke-dasharray", "5 5").style("opacity", this.graph.opacity).call(d3.axisLeft(this.graph.y).tickSize(-this.graph.width).tickFormat("").ticks(yAxisCount));
 
         // 캔버스 그리기
         let canvasDiv = d3.select(this.refs.xlogViewer).select(".canvas-div");
@@ -366,9 +413,9 @@ class XLog extends Component {
                     x1: startTime.getTime(),
                     x2: endTime.getTime(),
                     y1: minTime,
-                    y2: maxTime
+                    y2: maxTime,
+                    filter : that.props.filter
                 });
-
 
                 setTimeout(() => {
                     d3.select(".selection").attr("x", 0).attr("y", 0).attr("width", 0).attr("height", 0);
@@ -430,21 +477,22 @@ class XLog extends Component {
             }
         }
 
-        this.redraw();
+        this.redraw(this.props.filter);
     };
 
-
     axisUp = (e) => {
-        common.setLocalSettingData(XLOG_ELAPSED, this.state.elapsed * 2);
+        const yValue = this.state.elapsed >= 3000 ? this.state.elapsed * 1.3 : this.state.elapsed * 1.7;
+        common.setLocalSettingData(XLOG_ELAPSED, yValue);
         this.setState({
-            elapsed: this.state.elapsed * 2
+            elapsed: yValue
         });
     };
 
     axisDown = () => {
-        common.setLocalSettingData(XLOG_ELAPSED, this.state.elapsed / 2);
+        const yValue = this.state.elapsed >= 3000 ? this.state.elapsed / 1.3 : this.state.elapsed / 1.7;
+        common.setLocalSettingData(XLOG_ELAPSED, yValue);
         this.setState({
-            elapsed: this.state.elapsed / 2
+            elapsed: yValue
         });
     };
 
@@ -455,6 +503,16 @@ class XLog extends Component {
     render() {
         return (
             <div className="xlog-viewer" ref="xlogViewer" onTouchStart={this.stopProgation} onMouseDown={this.stopProgation}>
+                {(this.props.longTerm) && <div className="no-longterm-support"><div><div>LONGTERM NOT SUPPORTED</div></div></div>}
+                {(this.props.xlogNotSupportedInRange) && <div className="no-longterm-support"><div><div>XLOG NOT SUPPORTED in this range</div></div></div>}
+                {this.props.xlogHistoryDoing &&
+                <div className="xlog-history-stop-control">
+                    <div>
+                        <div>{this.props.xlogHistoryRequestCnt} REQUESTED</div>
+                        <div className="stop-btn" onClick={this.props.setStopXlogHistory}><i className="fa fa-stop-circle" aria-hidden="true"></i></div>
+                    </div>
+                </div>
+                }
                 <div className="axis-button axis-up noselect" onClick={this.axisUp} onMouseDown={this.stopProgation}>+</div>
                 <div className="axis-button axis-down noselect" onClick={this.axisDown} onMouseDown={this.stopProgation}>-</div>
                 {this.props.box.values.showPreview === "Y" &&
@@ -468,7 +526,8 @@ class XLog extends Component {
 let mapStateToProps = (state) => {
     return {
         config: state.config,
-        user: state.user
+        user: state.user,
+        filterMap: state.target.filterMap
     };
 };
 

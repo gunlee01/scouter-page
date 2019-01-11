@@ -97,6 +97,11 @@
     border-radius: 0 2px 0 0;
 }
 
+
+.xlog-profiler.param-mode .right {
+    width: 100%;
+}
+
 .xlog-profiler .profiler-layout .summary {
     min-height: 60px;
     background-color: #666;
@@ -116,6 +121,20 @@
 
 .xlog-profiler .profiler-layout .summary .title .selected-info {
     font-size: 10px;
+}
+
+.xlog-profiler .profiler-layout .summary .title .copy-url-btn {
+    font-size: 8px;
+    margin-left: 5px;
+    padding: 3px 4px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.xlog-profiler .profiler-layout .summary .title .copy-url-btn:hover {
+    background-color: #FFE600;
+    color: #333;
 }
 
 .xlog-profiler .profiler-layout .summary .list-summary {
@@ -162,27 +181,6 @@
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-.xlog-profiler .size-control-btns > button i {
-    position: absolute;
-    top: 4px;
-}
-
-.xlog-profiler .size-control-btns > button i.icon-1 {
-    left: 6px;
-}
-
-.xlog-profiler .size-control-btns > button i.icon-2 {
-    left: 7px;
-}
-
-.xlog-profiler .size-control-btns > button i.icon-3 {
-    left: 8px;
-}
-
-.xlog-profiler .size-control-btns > button i.icon-4 {
-    left: 7px;
-}
-
 .xlog-profiler .profiler-layout.right .summary {
     background-color: #444;
 }
@@ -227,8 +225,17 @@
     color: black;
 }
 
+.xlog-profiler .profile-steps-control .profile-control-btn:hover {
+    background-color: rgba(0,0,0,0.2);
+}
+
+.xlog-profiler .profile-steps-control .profile-control-btn.active:hover {
+    background-color: #EEC900;
+}
+
+
 .xlog-profiler .profile-steps-content {
-    overflow-y: auto;
+    overflow-y: scroll;
     height: 100%;
     box-sizing: border-box;
 }
@@ -282,9 +289,19 @@
         margin-left: 40px;
     }
 
+    .xlog-profiler.param-mode .profiler-layout.right .summary .title {
+        padding: 15px 10px 7px;
+        margin-left: 0;
+    }
+
     .xlog-profiler .profile-steps-control {
         margin-left: 40px;
-        padding: 0 0px;
+        padding: 0;
+    }
+
+    .xlog-profiler.param-mode .profile-steps-control {
+        margin-left: 10px;
+        padding: 0;
     }
 
     .xlog-profiler .profile-list-btn {

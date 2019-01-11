@@ -1,0 +1,278 @@
+.preset-manager-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0 auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    width: 100%;
+    display: table;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.preset-manager-bg > div {
+    display: table-cell;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.preset-manager-bg .selector-type-btns {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto 5px;
+}
+
+.preset-manager-bg .selector-type-btns > div {
+    display: inline-block;
+    padding: 6px 8px;
+    background-color: #282828;
+    border-radius: 5px;
+    margin-right: 5px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.preset-manager-bg .selector-type-btns > div:hover {
+    background-color: #FFCC11;
+    color: #333;
+}
+
+.preset-manager-bg .selector-type-btns > div.selected {
+    background-color: #FFCC11;
+    color: #333;
+}
+
+.preset-manager {
+    margin: 0 auto 400px;
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    color: white;
+    width: 100%;
+    max-width: 1200px;
+    height: 360px;
+    padding: 0;
+    position: relative;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+@media screen and (max-width: 1200px) {
+    .preset-manager {
+        width: calc(100% - 20px);
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+
+    .preset-manager-bg .selector-type-btns {
+        margin: 0 10px 5px;
+    }
+}
+
+@media only screen and (max-height: 1200px) {
+    .preset-manager {
+        margin-bottom: 200px;
+    }
+}
+
+@media only screen and (max-height: 800px) {
+    .preset-manager {
+        margin-bottom: 100px;
+    }
+}
+
+@media only screen and (max-height: 600px) {
+    .preset-manager {
+        margin-bottom: 0;
+    }
+}
+
+.preset-manager > div {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.preset-manager > div.content-ilst {
+    height: calc(100% - 70px);
+    overflow-y: auto;
+    margin-top: 30px;
+    font-size: 10px;
+}
+
+.preset-manager .title {
+    text-align: center;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 30px;
+}
+
+.preset-manager .title > div {
+    display: inline-block;
+    padding: 8px 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    margin: 0;
+    line-height: 0;
+    font-size: 10px;
+}
+
+.preset-manager .buttons {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 10px 10px 8px;
+    text-align: right;
+    font-size: 10px;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.preset-manager .buttons button {
+    float: right;
+}
+
+.preset-manager .buttons button.save-btn,
+.preset-manager .buttons button.delete-btn {
+    float: left;
+}
+
+.preset-manager ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.preset-manager ul li {
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.preset-manager ul li > div {
+    line-height: 0;
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.preset-manager ul li > div > div {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.preset-manager ul li > div > div.index {
+    width: 40px;
+}
+
+.preset-manager ul li span {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    padding: 8px;
+    line-height: 100%;
+}
+
+.preset-manager ul li .summary-info {
+    position: relative;
+}
+
+.preset-manager ul li .summary-info span {
+    padding-top: 0;
+    display: inline-block;
+}
+
+.preset-manager ul li .summary-info .icon-list {
+    display: inline-block;
+    position: absolute;
+    bottom : 2px;
+    right : 5px;
+}
+
+.preset-manager ul li .summary-info .icon-list .icon-item {
+    display: inline-block;
+    width: 20px;
+}
+
+.preset-manager ul li .no {
+    width: 25px;
+}
+
+.preset-manager ul li .done-btn,
+.preset-manager ul li .edit-btn {
+    width: 60px;
+    text-align: center;
+    display: none;
+}
+
+.preset-manager ul li .done-btn:hover,
+.preset-manager ul li .edit-btn:hover {
+    color: #FFD700;
+}
+
+.preset-manager ul li:hover .done-btn,
+.preset-manager ul li:hover .edit-btn {
+    display: inline-block;
+}
+
+.preset-manager ul li .name {
+    width: calc(100% - 85px);
+}
+
+.preset-manager ul li .name.edit {
+    padding: 0 5px;
+}
+
+.preset-manager ul li input {
+    padding: 6px;
+    font-size: 10px;
+    width: 100%;
+    line-height: 0;
+    border-radius: 3px;
+    border: none;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.preset-manager ul li input * {
+    padding: 0;
+}
+
+.preset-manager ul li:first-child {
+    border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.preset-manager ul li:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.preset-manager ul li.selected {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.preset-manager .empty-content {
+    text-align: center;
+    padding-top: 100px;
+}
+
+
+
+
+
+
+
+@media only screen and (max-width: 800px) {
+    .preset-manager {
+        height: calc(100% - 120px);
+        margin-bottom: 0;
+    }
+}
+
+

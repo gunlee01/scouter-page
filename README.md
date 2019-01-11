@@ -1,14 +1,63 @@
+[![Englsh](https://img.shields.io/badge/language-English-orange.svg)](README.md) [![Korean](https://img.shields.io/badge/language-Korean-blue.svg)](README_kr.md)
+
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/scouter-project/scouter/issues)
+
 # SCOUTER PAPER
+SCOUTER PAPER is a dashboard software that utilizes the SCOUTER WEB API, an open source APM tool, to provide performance data over the web.
+ 
+- Easy installation and usability
+  - No installation is required, and the downloaded files are executed directly in your environment. It is also deployed directly to the WEB extension path of the installed SCOUTER just by copying the file, so that it can be accessed from any device in any external environment and used immediately.
 
->스카우터 페이퍼는 오픈소스 성능 모니터링 도구인 [SCOUTER](https://github.com/scouter-project)의 성능 데이터를 웹 브라우저를 통해 모니터링 하기 위한 웹 클라이언트 프로그램입니다. <span class="scouter-paper-tag">스카우터 페이퍼</span>를 통해 언제, 어디에서든 다양한 디바이스를 통해 <span class="scouter-tag">스카우터</span>의 성능 정보를 쉽게 확인할 수 있습니다. <span class="scouter-paper-tag">스카우터 페이퍼</span>는 반응형 웹 방식으로 제작되어, 모바일, 태블릿, PC 등의 다양한 디바이스를 통해 접속이 가능합니다.
+- Responsive Web
+  - It supports most modern web browsers and allows you to configure, store and manage optimal layouts for various resolutions of connected devices. Each monitoring dashboard can be configured according to the connection environment and the monitoring target.
+   
+- Intuitive and configurable UI
+  - WYSIWYG editing based on your UX, from dashboard configuration to layout editing, is available. In addition, metrics that are optimized for the monitoring target can be combined and displayed through drag & drop.
+  
+- Outstanding extendable
+  - You can add performance information of various software through interworking with Telegraph, including metric of SCOUTER which is basically provided, and it is possible to configure tens of thousands of combinations of dashboards by combining them.
 
-### Prerequisites
-> 스카우터 1.8.0 버전 이상부터 스카우터 웹 API가 추가되었으나, 스카우터 페이퍼는 스카우터 1.8.4.1 버전의 API를 이용하여 만들어졌습니다. 최소 1.8.4.1 이상의 버전을 사용하는 것을 권장합니다.
+## How to build
+For build, npm must be installed first. 
+ 1. clone https://github.com/mindplates/scouter-paper.git
+ 2. npm install
+ 3. npm run build
+    
+## Download
+You can download the latest version from the page below.
+- [Release](https://github.com/mindplates/scouter-paper/releases/)
+ 
+## Guides
+- [Home Page](https://mindplates.github.io/scouter-paper/)
+- [User Guide](https://translate.google.co.kr/translate?sl=ko&tl=en&js=y&prev=_t&hl=ko&ie=UTF-8&u=https%3A%2F%2Fmindplates.github.io%2Fscouter-paper%2Fmanual.html&edit-text=&act=url)
+ 
+## Screenshots
+- HOME
 
-> SCOUTER PAPER는 IE(EDGE 포함)와 윈도우 사파리 브라우저에서 올바르게 동작하지 않습니다.
+SCOUTER PAPER version and latest version information.
+![Screen](./doc/img/1.png)
 
-### Guide
-> 릴리즈 파일의 /help/index.html 파일을 참조해주세요.
+- Topology
+
+You can see performance information between selected servers.
+![Screen](./doc/img/8.png)
+
+- PAPER
+
+You can create your own dashboards with a variety of dedicated components. 
+![Screen](./doc/img/9.png)
+
+- Profiles
+
+You can identify the request transaction to see the fine profile. 
+![Screen](./doc/img/12.png)
+ 
+### SCOUTER Web API version
+> SCOUTER PAPER 1.X requires SCOUTER 1.8.4.1 or higher, SCOUTER PAPER 2.X requires SCOUTER 2.0 or higher. We recommend that you use SCOUTER 2.0 or higher, which has a wider monitoring area in conjunction with Telegraph.
+
+### Supported browsers
+> Some features may not work in IE.
+> Windows Safari browser is not supported.
 
 ## License
 Licensed under the Apache License, Version 2.0

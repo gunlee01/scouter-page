@@ -1,9 +1,15 @@
 .login-wrapper {
     width: 100%;
-    height: calc(100% - 51px);
+    height: calc(100% - 60px);
     position: relative;
     padding: 10px;
     box-sizing: border-box;
+}
+
+@media screen and (max-width: 800px) {
+    .login-wrapper {
+        height: calc(100% - 45px);
+    }
 }
 
 .login-wrapper > div {
@@ -23,12 +29,16 @@
 .login-wrapper .login-box {
     background-color: white;
     display: inline-block;
-    width: 380px;
-    border: 1px solid #666;
+    width: 400px;
+    border: 1px solid rgba(0, 0, 0, 0.4);
     padding: 20px 40px;
     box-sizing: border-box;
     border-radius: 2px;
-    box-shadow: 0 0 5px #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
+}
+
+.login-wrapper .login-box .current-server {
+    padding: 10px;
 }
 
 @media screen and (max-width: 400px) {
@@ -37,10 +47,9 @@
     }
 }
 
-
 .login-wrapper input {
     background-color: transparent;
-    border: 1px solid #666;
+    border: 1px solid rgba(0,0,0,0.4);
     width: 100%;
     color: #333;
     outline: none;
@@ -52,10 +61,6 @@
 
 }
 
-.mac .login-wrapper input {
-    padding: 5px 10px;
-}
-
 .login-wrapper .product {
     display: inline-block;
     background-color: rgba(0, 0, 0, 0.4);
@@ -63,7 +68,6 @@
     color: white;
     padding: 4px 8px;
     border-radius: 2px;
-    margin-bottom: 10px;
 }
 
 .login-wrapper .logo-div {
@@ -76,14 +80,6 @@
 
 .login-wrapper img.logo {
     width: 60px;
-}
-
-@media screen and (max-height: 600px) {
-
-}
-
-@media screen and (max-height: 400px) {
-
 }
 
 .login-wrapper input:-ms-input-placeholder {
@@ -120,4 +116,3 @@
 .login-wrapper .when {
     margin-bottom: 10px;
 }
-

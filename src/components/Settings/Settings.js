@@ -30,33 +30,78 @@ class Settings extends Component {
         };
     }
 
-    componentDidUpdate(prevProps, prevState) {
-
-
-    }
-
-
     onChange = (attr, event) => {
-        let config = this.state.config;
+        let config = Object.assign({}, this.state.config);
         config[attr] = event.target.value;
         this.setState({
             config: config
         });
     };
 
+    onChangeServer = (attr, inx, event) => {
+        let config = Object.assign({}, this.state.config);
+        let server = config.servers[inx];
+
+        if (attr === "default") {
+            server.default = !server.default;
+
+            if (server.default === true) {
+                for (let i=0; i<config.servers.length; i++) {
+                    if (i !== inx) {
+                        config.servers[i].default = false;
+                    }
+                }
+            }
+        } else {
+            server[attr] = event.target.value;
+        }
+
+        this.setState({
+            config: config
+        });
+    };
+
+    addServer = () => {
+        let config = Object.assign({}, this.state.config);
+        let newServer = Object.assign({}, config.servers[config.servers.length - 1]);
+        newServer.default = false;
+        config.servers.push(newServer);
+        this.setState({
+            config: config
+        });
+    };
+
+    removeServer = (inx) => {
+        if (this.state.edit) {
+            let config = Object.assign({}, this.state.config);
+            let servers = config.servers;
+            let checked = false;
+            if (servers[inx].default) {
+                checked = true;
+            }
+            servers.splice(inx, 1);
+
+            if (checked && servers.length > 0) {
+                servers[0].default = true;
+            }
+
+            this.setState({
+                config: config
+            });
+        }
+    };
+
     onChangeRange = (attr, event) => {
-        let config = this.state.config;
+        let config = Object.assign({}, this.state.config);
         config.range[attr] = event.target.value;
         this.setState({
             config: config
         });
     };
 
-    onChangeSession = (attr, event) => {
-
-        let config = this.state.config;
-        config.authentification[attr] = event.target.value;
-
+    onDecimalPointChange = (event) => {
+        let config = Object.assign({}, this.state.config);
+        config.decimalPoint = event.target.value;
         this.setState({
             config: config
         });
@@ -64,7 +109,7 @@ class Settings extends Component {
 
     onChangeFont = (attr, event) => {
 
-        let config = this.state.config;
+        let config = Object.assign({}, this.state.config);
         config.fontSetting[attr] = event.target.value;
 
         this.setState({
@@ -74,8 +119,43 @@ class Settings extends Component {
 
     onChangeGraph = (attr, event) => {
 
-        let config = this.state.config;
+        let config = Object.assign({}, this.state.config);
         config.graph[attr] = event.target.value;
+
+        this.setState({
+            config: config
+        });
+    };
+
+    onChangeOthers = (attr, event) => {
+
+        let config = Object.assign({}, this.state.config);
+        config.others[attr] = event.target.value;
+
+        this.setState({
+            config: config
+        });
+    };
+
+    onChangeTheme = (event) => {
+        let config = Object.assign({}, this.state.config);
+        config.theme = event.target.value;
+
+        if (config.theme === "theme-blue/white") {
+            config.colorType = "white";
+        } else {
+            config.colorType = "black";
+        }
+
+        this.setState({
+            config: config
+        });
+    };
+
+    onChangeAlert = (attr, event) => {
+
+        let config = Object.assign({}, this.state.config);
+        config.alert[attr] = event.target.value;
 
         this.setState({
             config: config
@@ -84,7 +164,7 @@ class Settings extends Component {
 
     onXLogOptionChange = (type, dir, event) => {
 
-        let config = this.state.config;
+        let config = Object.assign({}, this.state.config);
 
         config.xlog[type][dir] = event.target.value;
         this.setState({
@@ -95,8 +175,8 @@ class Settings extends Component {
 
     submit = () => {
 
+        this.props.setConfig(this.state.config);
         if (localStorage) {
-            this.props.setConfig(this.state.config);
             localStorage.setItem("config", JSON.stringify(this.state.config));
             this.setState({
                 edit: false,
@@ -118,6 +198,15 @@ class Settings extends Component {
         }
 
         return false;
+    };
+
+    resetClick = () => {
+
+        if (localStorage) {
+            localStorage.removeItem("config");
+            window.location.reload();
+        }
+
     };
 
     resetConfig = () => {
@@ -230,7 +319,7 @@ class Settings extends Component {
         let cellId = this.state.selected.normal.cellId;
         let selected = this.state.selected;
         if (cellId) {
-            let config = this.state.config;
+            let config = Object.assign({}, this.state.config);
             if (config.xlog.normal.fills[cellId]) {
                 if (color.hex === "transparent") {
                     delete config.xlog.normal.fills[cellId];
@@ -260,7 +349,7 @@ class Settings extends Component {
         let cellId = this.state.selected.async.cellId;
         let selected = this.state.selected;
         if (cellId) {
-            let config = this.state.config;
+            let config = Object.assign({}, this.state.config);
             if (config.xlog.async.fills[cellId]) {
                 if (color.hex === "transparent") {
                     delete config.xlog.async.fills[cellId];
@@ -290,7 +379,7 @@ class Settings extends Component {
         let cellId = this.state.selected.error.cellId;
         let selected = this.state.selected;
         if (cellId) {
-            let config = this.state.config;
+            let config = Object.assign({}, this.state.config);
             if (config.xlog.error.fills[cellId]) {
                 if (color.hex === "transparent") {
                     delete config.xlog.error.fills[cellId];
@@ -327,49 +416,102 @@ class Settings extends Component {
                     <form ref="root" onSubmit={this.submit}>
                 <div className={"settings " + (this.state.edit ? 'editable' : '')}>
                     <div className="forms">
+                        <div className="top-btns">
+                            {this.state.edit &&
+                            <div className="buttons">
+                                <button onClick={this.resetConfig}>CANCEL</button>
+                                <button type="submit">APPLY</button>
+                            </div>
+                            }
+                            {!this.state.edit &&
+                            <div className="buttons">
+                                <button onClick={this.editClick}>EDIT</button>
+                            </div>
+                            }
+                        </div>
                         <div className="category first">
                             <div>SCOUTER WEB API SERVER INFO</div>
                         </div>
-                        <div className="setting-box">
-                            <div className="row">
-                                <div className="label">
-                                    <div>PROTOCOL</div>
+                        <div className="setting-box server-setting-box">
+                            <div className="server-plus-btn"><button type="button" disabled={!this.state.edit} onClick={this.addServer}><i className="fa fa-plus-circle" aria-hidden="true"></i> ADD SERVER</button></div>
+                            <div className="server-row">
+                                <div className="row server-row-no">
+                                    <div className="label">
+                                        <div>NO</div>
+                                    </div>
                                 </div>
-                                <div className="input">
-                                    <select value={this.state.config.protocol} onChange={this.onChange.bind(this, "protocol")} disabled={!this.state.edit}>
-                                        <option value="http">HTTP</option>
-                                        <option value="https">HTTPS</option>
-                                    </select>
+                                <div className="row server-row-protocol">
+                                    <div className="label">
+                                        <div>PROTOCOL</div>
+                                    </div>
                                 </div>
+                                <div className="row server-row-address">
+                                    <div className="label">
+                                        <div>ADDRESS</div>
+                                    </div>
+                                </div>
+                                <div className="row server-row-port">
+                                    <div className="label">
+                                        <div>PORT</div>
+                                    </div>
+                                </div>
+                                <div className="row server-row-authentification">
+                                    <div className="label">
+                                        <div className="long">AUTHENTIFICATION TYPE</div>
+                                        <div className="short">AUTH TYPE</div>
+                                    </div>
+                                </div>
+                                <div className="row server-row-default">
+                                    <div className="label">
+                                        <div>DEFAULT</div>
+                                    </div>
+                                </div>
+                                <div className="row server-row-remove"></div>
                             </div>
-                            <div className="row">
-                                <div className="label">
-                                    <div>ADDRESS</div>
-                                </div>
-                                <div className="input">
-                                    <input required type="text" readOnly={!this.state.edit} onChange={this.onChange.bind(this, "address")} value={this.state.config.address} placeholder="SCOUTER WEBAPP SERVER ADDRESS" />
-                                </div>
-                            </div>
-                            <div className="row">
-                                <div className="label">
-                                    <div>PORT</div>
-                                </div>
-                                <div className="input">
-                                    <input required pattern="[0-9\/]*" type="text" readOnly={!this.state.edit} onChange={this.onChange.bind(this, "port")} value={this.state.config.port} placeholder="SCOUTER WEBAPP SERVER PORT (DEFAULT 6188)" />
-                                </div>
-                            </div>
-                            <div className="row">
-                                <div className="label">
-                                    <div>AUTHENTIFICATION TYPE</div>
-                                </div>
-                                <div className="input">
-                                    <select value={this.state.config.authentification.type} onChange={this.onChangeSession.bind(this, "type")} disabled={!this.state.edit}>
-                                        <option value="bearer">token (bearer)</option>
-                                        <option value="cookie">cookie</option>
-                                        <option value="none">N/A</option>
-                                    </select>
-                                </div>
-                            </div>
+                            {this.state.config.servers.map((server, inx) => {
+                                return (
+                                    <div className="server-row" key={inx}>
+                                        <div className="row server-row-no">
+                                            <span>{inx + 1}</span>
+                                        </div>
+                                        <div className="row server-row-protocol">
+                                            <div className="input">
+                                                <select value={server.protocol} onChange={this.onChangeServer.bind(this, "protocol", inx)} disabled={!this.state.edit}>
+                                                    <option value="http">HTTP</option>
+                                                    <option value="https">HTTPS</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="row server-row-address">
+                                            <div className="input">
+                                                <input required type="text" readOnly={!this.state.edit} onChange={this.onChangeServer.bind(this, "address", inx)} value={server.address} placeholder="SCOUTER WEBAPP SERVER ADDRESS" />
+                                            </div>
+                                        </div>
+                                        <div className="row server-row-port">
+                                            <div className="input">
+                                                <input required pattern="[0-9\/]*" type="text" readOnly={!this.state.edit} onChange={this.onChangeServer.bind(this, "port", inx)} value={server.port} placeholder="SCOUTER WEBAPP SERVER PORT (DEFAULT 6188)" />
+                                            </div>
+                                        </div>
+                                        <div className="row server-row-authentification">
+                                            <div className="input">
+                                                <select value={server.authentification} onChange={this.onChangeServer.bind(this, "authentification", inx)} disabled={!this.state.edit}>
+                                                    <option value="bearer">token (bearer)</option>
+                                                    <option value="cookie">cookie</option>
+                                                    <option value="none">N/A</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="row server-row-default">
+                                            <div className="input">
+                                                <input type="radio" name="server-default" disabled={!this.state.edit} checked={server.default}  onChange={this.onChangeServer.bind(this, "default", inx)} />
+                                            </div>
+                                        </div>
+                                        <div className="row server-row-remove">
+                                            <div className={this.state.edit ? '' : 'disabled'} onClick={this.removeServer.bind(this, inx)}><i className="fa fa-times-circle-o" aria-hidden="true"></i></div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                         <div className="category first">
                             <div>POLLING & RANGE</div>
@@ -377,10 +519,18 @@ class Settings extends Component {
                         <div className="setting-box">
                             <div className="row">
                                 <div className="label">
-                                    <div>INTERVAL (milliseconds)</div>
+                                    <div>REALTIME DATA INTERVAL (milliseconds)</div>
                                 </div>
                                 <div className="input">
-                                    <input type="number" required min={2000} step={500} readOnly={!this.state.edit} onChange={this.onChange.bind(this, "interval")} value={this.state.config.interval} placeholder="POLLING INTERVAL (MS)" />
+                                    <input type="number" required min={2000} step={500} readOnly={!this.state.edit} onChange={this.onChange.bind(this, "interval")} value={this.state.config.interval} placeholder="REALTIME POLLING INTERVAL (MS)" />
+                                </div>
+                            </div>
+                            <div className="row">
+                                <div className="label">
+                                    <div>ALERT DATA INTERVAL (seconds)</div>
+                                </div>
+                                <div className="input">
+                                    <input type="number" required min={1} step={1} readOnly={!this.state.edit} onChange={this.onChange.bind(this, "alertInterval")} value={this.state.config.alertInterval} placeholder="ALERT POLLING INTERVAL (s)" />
                                 </div>
                             </div>
                             <div className="row">
@@ -388,7 +538,7 @@ class Settings extends Component {
                                     <div>SHORT HISTORY RANGE (minutes)</div>
                                 </div>
                                 <div className="input">
-                                    <input type="number" required min={10} max={60} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "shortHistoryRange")} value={this.state.config.range.shortHistoryRange} placeholder="MINUTES" />
+                                    <input type="number" required min={10} max={720} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "shortHistoryRange")} value={this.state.config.range.shortHistoryRange} placeholder="MINUTES" />
                                 </div>
                             </div>
                             <div className="row">
@@ -404,7 +554,7 @@ class Settings extends Component {
                                     <div>LONG HISTORY RANGE (hours)</div>
                                 </div>
                                 <div className="input">
-                                    <input type="number" required min={2} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "longHistoryRange")} value={this.state.config.range.longHistoryRange} placeholder="HOURS" />
+                                    <input type="number" required min={24} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "longHistoryRange")} value={this.state.config.range.longHistoryRange} placeholder="HOURS" />
                                 </div>
                             </div>
                             <div className="row">
@@ -412,7 +562,23 @@ class Settings extends Component {
                                     <div>LONG HISTORY STEP (minutes)</div>
                                 </div>
                                 <div className="input">
-                                    <input type="number" required min={10} step={10} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "longHistoryStep")} value={this.state.config.range.longHistoryStep} placeholder="MINUTES" />
+                                    <input type="number" required min={60} step={60} readOnly={!this.state.edit} onChange={this.onChangeRange.bind(this, "longHistoryStep")} value={this.state.config.range.longHistoryStep} placeholder="MINUTES" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="category first">
+                            <div>ALERT</div>
+                        </div>
+                        <div className="setting-box">
+                            <div className="row">
+                                <div className="label">
+                                    <div>USE BROWSER NOITIFICATION</div>
+                                </div>
+                                <div className="input">
+                                    <select value={this.state.config.alert.notification} onChange={this.onChangeAlert.bind(this, "notification")} disabled={!this.state.edit}>
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -522,6 +688,22 @@ class Settings extends Component {
                                 </div>
                             </div>
                         </div>
+                        <div className="category first">
+                            <div>THEME</div>
+                        </div>
+                        <div className="setting-box">
+                            <div className="row">
+                                <div className="label">
+                                    <div>COLOR THEME</div>
+                                </div>
+                                <div className="input">
+                                    <select value={this.state.config.theme} onChange={this.onChangeTheme.bind(this)} disabled={!this.state.edit}>
+                                        <option value="theme-blue/white">BLUE/WHITE</option>
+                                        <option value="theme-gray">GRAY</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         <div className="category">
                             <div>FONTS CONFIGURATION</div>
                         </div>
@@ -593,10 +775,20 @@ class Settings extends Component {
                         <div className="setting-box">
                             <div className="row">
                                 <div className="label">
-                                    <div>NUMBER FORMAT</div>
+                                    <div>DISPLAY NUMBER FORMAT</div>
                                 </div>
                                 <div className="input">
                                     <input type="text" readOnly={!this.state.edit} onChange={this.onChange.bind(this, "numberFormat")} value={this.state.config.numberFormat} placeholder="0,0" />
+                                </div>
+                            </div>
+                            <div className="row">
+                                <div className="label">
+                                    <div>DATA DECIMAL POINT</div>
+                                </div>
+                                <div className="input">
+                                    <select value={this.state.config.decimalPoint} onChange={this.onDecimalPointChange} disabled={!this.state.edit}>
+                                        <option>0</option><option>1</option><option>2</option><option>3</option><option>4</option>
+                                    </select>
                                 </div>
                             </div>
                             <div className="row">
@@ -803,6 +995,34 @@ class Settings extends Component {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="category">
+                            <div>OTHERS</div>
+                        </div>
+                        <div className="setting-box">
+                            <div className="row">
+                                <div className="label">
+                                    <div>CHECK PAPER UPDATE & NOTICE</div>
+                                </div>
+                                <div className="input">
+                                    <select value={this.state.config.others.checkUpdate} onChange={this.onChangeOthers.bind(this, "checkUpdate")} disabled={!this.state.edit}>
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="row">
+                                <div className="label">
+                                    <div>SEND SCRIPT ERROR INFO</div>
+                                </div>
+                                <div className="input">
+                                    <select value={this.state.config.others.errorReport} onChange={this.onChangeOthers.bind(this, "errorReport")} disabled={!this.state.edit}>
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     {this.state.edit &&
                     <div className="buttons">
@@ -813,6 +1033,7 @@ class Settings extends Component {
                     {!this.state.edit &&
                     <div className="buttons">
                         <button onClick={this.editClick}>EDIT</button>
+                        <span onClick={this.resetClick} className="restore-btn">RESTORE DEFAULT SETTING</span>
                     </div>
                     }
                 </div></form>}</div>
@@ -822,7 +1043,6 @@ class Settings extends Component {
 
 let mapStateToProps = (state) => {
     return {
-        instances: state.target.instances,
         config: state.config
     };
 };

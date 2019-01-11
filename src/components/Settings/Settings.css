@@ -1,7 +1,6 @@
 .settings {
     text-align: left;
     padding: 10px;
-    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -28,6 +27,7 @@
 .settings .forms {
     padding: 0;
     margin: 0 200px 0;
+    position: relative;
 }
 
 .settings .setting-box {
@@ -37,23 +37,44 @@
     box-shadow: 0 0 5px #666;
 }
 
-@media screen and (max-width: 1400px) {
-    .settings .forms {
-        margin: 0 100px 0;
+.settings .server-setting-box {
+    position: relative;
+    padding-top: 40px;
+}
+
+.settings .server-setting-box .server-plus-btn {
+    position: absolute;
+    top : 10px;
+    right : 10px;
+    display: inline-block;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+@media screen and (max-width: 2400px) {
+    .max.pinned .settings .forms {
+        margin: 0 20px 0;
     }
 }
 
-@media screen and (max-width: 1200px) {
-    .settings .forms {
-        margin: 0 50px 0;
-    }
-}
-
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 2000px) {
     .settings .forms {
         margin: 0 20px 0;
     }
 }
+
+@media screen and (max-width: 1200px) {
+    .max.pinned .settings .forms {
+        margin: 0 10px 0;
+    }
+}
+
+@media screen and (max-width: 800px) {
+    .settings .forms {
+        margin: 0 10px 0;
+    }
+}
+
 
 @media screen and (max-width: 600px) {
     .settings .forms {
@@ -80,6 +101,56 @@
     display: inline-block;
     width: 25%;
     padding-right: 20px;
+    padding-top: 15px;
+}
+
+.settings .forms .server-row {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.settings .forms .server-row .row {
+    display: table-cell;
+    vertical-align: middle;
+    padding: 0;
+    width: calc((100% - 100px) / 4);
+    padding: 5px;
+    text-align: center;
+}
+
+.settings button[disabled] {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.settings .forms .row.server-row-no {
+    width: 40px;
+}
+
+.settings .forms .row.server-row-default {
+    width: 40px;
+}
+.settings .forms .row.server-row-remove {
+    width: 20px;
+}
+
+.settings .forms .server-row-authentification .short {
+    display: none;
+}
+
+
+.settings .forms .row.server-row-remove .disabled {
+    color: #999;
+}
+
+.settings .forms .row.server-row-remove > div {
+    cursor: pointer;
+}
+
+.settings .forms .server-row input[type=radio] {
+    width: 20px;
+    padding: 0;
+    margin: 0;
 }
 
 .settings .forms .dot-box {
@@ -99,17 +170,46 @@
     padding-right: 0;
 }
 
-.settings .forms .row:nth-child(3),
-.settings .forms .row:nth-child(4),
-.settings .forms .row:nth-child(5),
-.settings .forms .row:nth-child(6) {
-    padding-top: 15px;
+@media screen and (max-width: 1600px) {
+
+    .max.pinned .settings .setting-box {
+        padding: 15px 20px 20px 20px;
+    }
+
+    .max.pinned .settings .server-setting-box {
+        padding-top: 40px;
+    }
+
+    .max.pinned .settings .forms .row {
+        margin: 0;
+        width: 50%;
+        padding-top: 10px;
+        padding-right: 20px;
+    }
+
+    .max.pinned .settings .forms .row:nth-child(4n) {
+        padding-right: 20px;
+    }
+
+    .max.pinned .settings .forms .row:nth-child(2n) {
+        padding-right: 0;
+    }
+
+    .max.pinned .settings .forms .server-row .row:nth-child(2n) {
+        padding-right: 5px;
+    }
+
 }
 
-@media screen and (max-width: 1100px) {
+
+@media screen and (max-width: 1200px) {
 
     .settings .setting-box {
         padding: 15px 20px 20px 20px;
+    }
+
+    .settings .server-setting-box {
+        padding-top: 40px;
     }
 
     .settings .forms .row {
@@ -127,12 +227,12 @@
         padding-right: 0;
     }
 
-    .settings .forms .row:nth-child(1),
-    .settings .forms .row:nth-child(2) {
-        padding-top: 0;
+    .settings .forms .server-row .row:nth-child(2n) {
+        padding-right: 5px;
     }
 
 }
+
 
 @media screen and (max-width: 800px) {
     .settings .forms .row {
@@ -143,14 +243,8 @@
         padding-right: 0;
     }
 
-    .settings .forms .row:nth-child(2n),
-    .settings .forms .row:nth-child(3n),
-    .settings .forms .row:nth-child(4n) {
+    .settings .forms .row {
         padding-top: 10px;
-    }
-
-    .settings .forms .row:first-child {
-        padding-top: 0;
     }
 
     .settings .forms .dot-box {
@@ -163,6 +257,90 @@
 
     .settings .forms .row.dot-row {
         display: block;
+    }
+
+    .settings .forms .row.server-row-no {
+        display: none;
+    }
+
+    .settings .forms .row.server-row-protocol {
+        width: 60px;
+    }
+
+    .settings .forms .row.server-row-address {
+        width: auto;
+    }
+
+    .settings .forms .row.server-row-port {
+        width: 60px;
+    }
+
+    .settings .forms .row.server-row-authentification {
+        width: 100px;
+    }
+
+    .settings .forms .server-row-authentification .long {
+        display: none;
+    }
+
+    .settings .forms .server-row-authentification .short {
+        display: block;
+    }
+
+    .settings .forms .row.server-row-default {
+        width: 40px;
+    }
+
+    .settings .forms .row.server-row-remove {
+        width: 20px;
+    }
+}
+
+
+@media screen and (max-width: 600px) {
+
+    .settings .setting-box {
+        padding: 0 10px 10px 10px;
+
+    }
+
+    .settings .server-setting-box {
+        padding-top: 40px;
+    }
+
+    .settings .forms .row.server-row-protocol {
+        width: 50px;
+        padding-left: 0;
+    }
+
+    .settings .forms .row.server-row-address {
+        width: auto;
+    }
+
+    .settings .forms .row.server-row-port {
+        width: 50px;
+    }
+
+    .settings .forms .row.server-row-authentification {
+        width: 90px;
+    }
+
+    .settings .forms .server-row-authentification .long {
+        display: none;
+    }
+
+    .settings .forms .server-row-authentification .short {
+        display: block;
+    }
+
+    .settings .forms .row.server-row-default {
+        width: 30px;
+    }
+
+
+
+    .settings .forms .row.server-row-remove {
+        width: 20px;
     }
 }
 
@@ -217,6 +395,8 @@
     width: 100%;
     border: 1px solid rgba(0, 0, 0, 0.3);
     font-size: 10px;
+    -webkit-appearance: none;
+    outline: none;
 }
 
 .settings .forms .setting-box select[disabled] {
@@ -247,8 +427,39 @@
 
 .settings .buttons {
     text-align: center;
-    padding: 20px 20px 10px;
+    padding: 10px 20px 10px;
+    position: relative;
+}
 
+.settings .top-btns .buttons {
+    position: absolute;
+    text-align: right;
+    right : 0;
+    padding: 0;
+}
+
+.settings .top-btns .buttons button {
+    margin: 0 0 0 2px;
+    padding: 4px 10px;
+}
+
+.settings .buttons .restore-btn {
+    position: absolute;
+    left : 30px;
+    top : 0;
+    font-size: 10px;
+    top : 17px;
+    color: white;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 600px) {
+    .settings .buttons .restore-btn {
+        position: static;
+        display: block;
+        padding: 20px 0;
+    }
 }
 
 .settings .buttons button {
@@ -337,6 +548,5 @@
 
 .flexbox-fix input {
     padding: 5px 0 0 5px !important;
-
 }
 

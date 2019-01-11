@@ -2,31 +2,18 @@
     padding: 6px;
     font-size: 12px;
     color: white;
-    background-color: #0D4F8B;
-    background-color: #1874CD;
     box-sizing: border-box;
-    position: absolute;
-    z-index: 20;
-    top: 90px;
-    left: 18px;
     margin: 0;
-    width: 425px;
+    width: 100%;
     height: 84px;
-    border: 1px solid rgba(0, 0, 0, 0.4);
-    _border-radius: 0 5px 5px 5px;
-    display: none;
-}
-
-.range-controls.fixed {
-    position: fixed;
-    top: 28px;
-    left: 8px;
+    _border: 1px solid rgba(0, 0, 0, 0.4);
+    display: block;
 }
 
 @media screen and (max-width: 600px) {
     .range-controls {
         width: calc(100% - 36px);
-        top: 85px;
+        top: 57px;
     }
 
     .range-controls.fixed {
@@ -35,43 +22,6 @@
         top: 28px;
         left: 8px;
     }
-}
-
-.range-controls .close-btn {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    cursor: pointer;
-    box-sizing: border-box;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-}
-
-.range-controls .close-btn:before,
-.range-controls .close-btn:after {
-    content: '';
-    position: absolute;
-    height: 1px;
-    width: 90%;
-    top: 50%;
-    left: 0;
-    margin-top: -1px;
-    background: white;
-    box-sizing: border-box;
-}
-
-.range-controls .close-btn:hover:before,
-.range-controls .close-btn:hover:after {
-    background: #FFE600;
-}
-
-.range-controls .close-btn:before {
-    transform: rotate(45deg);
-}
-
-.range-controls .close-btn:after {
-    transform: rotate(-45deg);
 }
 
 .range-controls .time-type {
@@ -88,6 +38,8 @@
     width: 60px;
     text-align: center;
     box-sizing: border-box;
+    background-color: white;
+    color: #333;
 }
 
 .range-controls .time-type > div.real-time {
@@ -101,7 +53,7 @@
 }
 
 .range-controls .time-type > div:hover {
-    background-color: rgba(0,0,0,0.2);
+    background-color: #FFF6C7;
 }
 
 .range-controls .time-type > div.longterm-time {
@@ -119,22 +71,15 @@
     background-color: #FFC125;
 }
 
-
-
 .range-controls .time-type > div.disabled {
     background-color: transparent;
     color: #AAA;
     cursor: auto;
 }
 
-
-.range-controls.visible {
-    display: block;
-}
-
 .time-controller {
     display: table;
-    height: 25px;
+    height: 26px;
 }
 
 .time-controller > div {
@@ -210,8 +155,8 @@
 .range-controls .range-right-btn {
     position: relative;
     z-index: 1;
+    text-align: right;
 }
-
 
 @media screen and (max-width: 600px) {
     .range-controls .span-range {
@@ -237,10 +182,14 @@
     font-size: 10px;
     background-color: #FFCC11;
     color: #333;
-    padding: 6px 6px;
+    padding: 7px 6px;
     margin-left: 12px;
-    border-radius: 3px;
+    _border-radius: 3px;
     border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.range-controls .search-btn:hover {
+    background-color: #FFDB58;
 }
 
 .range-controls .search-btn.disabled {
@@ -338,6 +287,7 @@
 .range-controls .selected-time > div {
     display: inline-block;
     background-color: rgba(0, 0, 0, 0.2);
+
     padding: 2px 4px;
     font-size: 8px;
 }
@@ -376,5 +326,3 @@
     box-sizing: border-box;
     text-align: center;
 }
-
-
