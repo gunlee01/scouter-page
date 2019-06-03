@@ -13,6 +13,7 @@ import Profiler from "./XLog/Profiler/Profiler";
 import ActiveService from "./ActiveService/ActiveService";
 import ServerDate from "../../common/ServerDate";
 import moment from "moment";
+import * as Options from "./PaperControl/Options"
 import OldVersion from "../OldVersion/OldVersion";
 
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
@@ -55,11 +56,9 @@ class Paper extends Component {
                 }
             }
         }
-
         if (!(layouts)) {
             layouts = {};
         }
-
         if (!boxes) {
             boxes = [];
         }
@@ -208,11 +207,22 @@ class Paper extends Component {
             rangeControl: false
         };
 
+        // 초기화 : 만약 라인 차트 타입 설정이 없는 경우
+
+        if( boxes ){
+            for (const key in boxes) {
+                if( !boxes[key].advancedOption && Array.isArray(boxes[key].option) ){
+                    boxes[key].advancedOption = Options.options().lineChart.config;
+                    for(const attr in boxes[key].advancedOption ){
+                        boxes[key].values[attr] =  boxes[key].advancedOption[attr].value;
+                    }
+                }
+            }
+        }
         this.props.setBoxesLayouts(boxes, layouts);
     }
 
-    componentDidUpdate = (prevProps, prevState) => {
-
+    componentDidUpdate = (prevProps, nextState) => {
         let counterKeyMap = {};
         for (let i = 0; i < this.props.boxes.length; i++) {
             let option = this.props.boxes[i].option;
@@ -270,7 +280,19 @@ class Paper extends Component {
 
         if (JSON.stringify(nextProps.template) !== JSON.stringify(this.props.template)) {
             if (JSON.stringify(nextProps.template.boxes) !== JSON.stringify(this.state.boxes) || JSON.stringify(nextProps.template.layouts) !== JSON.stringify(this.state.layouts)) {
-                this.props.setBoxesLayouts(nextProps.template.boxes, nextProps.template.layouts);
+                // 초기화 : 만약 라인 차트 타입 설정이 없는 경우
+                const boxes = nextProps.template.boxes;
+                if( boxes ){
+                    for (const key in boxes) {
+                        if( !boxes[key].advancedOption && Array.isArray(boxes[key].option) ){
+                            boxes[key].advancedOption = Options.options().lineChart.config;
+                            for(const attr in boxes[key].advancedOption ){
+                                boxes[key].values[attr] =  boxes[key].advancedOption[attr].value;
+                            }
+                        }
+                    }
+                }
+                this.props.setBoxesLayouts(boxes, nextProps.template.layouts);
             }
         }
 
@@ -1179,8 +1201,8 @@ class Paper extends Component {
 
     setOption = (key, option) => {
 
+        // paper init counter position : 2
         let boxes = this.props.boxes.slice(0);
-
         boxes.forEach((box) => {
             if (box.key === key) {
 
@@ -1220,13 +1242,20 @@ class Paper extends Component {
                             familyName: option.familyName
                         });
                     }
+                    if(!box.advancedOption && option.advancedOption ){
+                        box.advancedOption = option.advancedOption;
+                    }
                 }
 
                 box.values = {};
                 for (let attr in option.config) {
                     box.values[attr] = option.config[attr].value;
                 }
-
+                if(option.advancedOption) {
+                    for (let attr in option.advancedOption) {
+                        box.values[attr] = option.advancedOption[attr].value;
+                    }
+                }
                 if (Array.isArray(box.option)) {
                     box.config = false;
                     let title = "";

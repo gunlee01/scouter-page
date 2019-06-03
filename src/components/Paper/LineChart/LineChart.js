@@ -3,6 +3,7 @@ import './LineChart.css';
 import {connect} from 'react-redux';
 import {withRouter} from 'react-router-dom';
 import * as d3 from "d3";
+import * as _ from "lodash";
 import ServerDate from "../../../common/ServerDate";
 import InstanceColor from "../../../common/InstanceColor";
 import numeral from "numeral";
@@ -13,7 +14,7 @@ class LineChart extends Component {
     lastCountersTime = null;
     lastCountersHistoryTime = null;
     historyInit = {};
-
+    chartType = "LINE";
     graph = {
         margin: {
             top: 15, right: 15, bottom: 25, left: 40
@@ -72,6 +73,24 @@ class LineChart extends Component {
 
     componentWillReceiveProps(nextProps) {
         let counters = Object.assign({}, this.state.counters);
+
+
+        if( nextProps.box.values['chartType'] !== this.chartType){
+            //- LINE FILL => LINE Change
+            if( nextProps.box.values['chartType'] === 'LINE' && this.chartType === 'LINE FILL' ){
+                this.removeLineFill();
+            }
+            //- LINE or LINE FILL => STACK;
+            if( nextProps.box.values['chartType'] === 'STACK AREA' && ( this.chartType === 'LINE' || this.chartType === 'LINE FILL') ){
+                this.removeLineFill();
+                this.removeLine();
+            }
+            // STACK => LINE or LINE FILL
+            if( (nextProps.box.values['chartType'] === 'LINE' || nextProps.box.values['chartType'] === 'LINE FILL' ) && ( this.chartType === 'STACK AREA') ){
+                this.removeStackFill();
+            }
+        }
+
         if (nextProps.countersHistory && this.lastCountersHistoryTime !== nextProps.countersHistoryTimestamp) {
 
             this.lastCountersHistoryTime = nextProps.countersHistoryTimestamp;
@@ -169,6 +188,7 @@ class LineChart extends Component {
             });
 
         }
+        this.chartType = nextProps.box.values['chartType'];
 
     }
 
@@ -225,28 +245,48 @@ class LineChart extends Component {
 
     setMaxY = (counters, option) => {
 
+
         let metricMap = {};
         option.forEach((option) => {
             metricMap[option.counterKey] = true;
         });
 
         let maxY = 0;
-        for (let attr in counters) {
-            if (!metricMap[attr]) {
-                continue;
+        if( this.chartType === "STACK AREA"){
+            for (let attr in counters) {
+                if (!metricMap[attr]) {
+                    continue;
+                }
+                for (let i = 0; i < counters[attr].length; i++) {
+                    // y축 sum
+                    const sum = Object.keys(counters[attr][i].data)
+                        .map(_key => Number(counters[attr][i].data[_key].value))
+                        .reduce((acc,cur)=> acc+cur,0);
+                    if( sum > maxY){
+                        maxY = sum;
+                    }
+                }
             }
 
-            for (let i = 0; i < counters[attr].length; i++) {
-                for (let hash in counters[attr][i].data) {
-                    if (Array.isArray(counters[attr][i].data[hash].value)) {
-                        for (let j = 0; j < counters[attr][i].data[hash].value.length; j++) {
-                            if (Number(counters[attr][i].data[hash].value[j]) > maxY) {
-                                maxY = Number(counters[attr][i].data[hash].value[j]);
+        }else {
+            for (let attr in counters) {
+                if (!metricMap[attr]) {
+                    continue;
+                }
+
+                for (let i = 0; i < counters[attr].length; i++) {
+                    for (let hash in counters[attr][i].data) {
+                        if (Array.isArray(counters[attr][i].data[hash].value)) {
+                            for (let j = 0; j < counters[attr][i].data[hash].value.length; j++) {
+                                // line chart
+                                if (Number(counters[attr][i].data[hash].value[j]) > maxY) {
+                                    maxY = Number(counters[attr][i].data[hash].value[j]);
+                                }
                             }
-                        }
-                    } else {
-                        if (Number(counters[attr][i].data[hash].value) > maxY) {
-                            maxY = Number(counters[attr][i].data[hash].value);
+                        } else {
+                            if (Number(counters[attr][i].data[hash].value) > maxY) {
+                                maxY = Number(counters[attr][i].data[hash].value);
+                            }
                         }
                     }
                 }
@@ -266,6 +306,8 @@ class LineChart extends Component {
         if (this.graph.autoMaxY > this.graph.maxY) {
             this.graph.maxY = this.graph.autoMaxY * 1.2;
         }
+
+
     };
 
     removeObjLine(prevList, currentList) {
@@ -301,7 +343,6 @@ class LineChart extends Component {
     }
 
     componentDidUpdate = (prevProps, prevState) => {
-
         if (prevProps.layoutChangeTime !== this.props.layoutChangeTime) {
             if (this.graphResize()) {
                 this.draw();
@@ -311,6 +352,7 @@ class LineChart extends Component {
             this.draw();
             this.removeObjLine(prevProps.objects, this.props.objects);
         }
+
 
     };
 
@@ -346,6 +388,7 @@ class LineChart extends Component {
             yAxisCount = 1;
         }
 
+        //- y
         if (init) {
             this.graph.svg.insert("g", ":first-child").attr("class", "axis-y").call(d3.axisLeft(this.graph.y).tickFormat(this.leftAxisFormat).ticks(yAxisCount));
             this.graph.svg.insert("g", ":first-child").attr("class", "grid-y").style("stroke-dasharray", "5 5").style("opacity", this.graph.opacity).call(d3.axisLeft(this.graph.y).tickSize(-this.graph.width).tickFormat("").ticks(yAxisCount));
@@ -357,6 +400,7 @@ class LineChart extends Component {
         if (init) {
             this.graph.svg.insert("g", ":first-child").attr("class", "axis-x").attr("transform", "translate(0," + this.graph.height + ")").call(d3.axisBottom(this.graph.x).tickFormat(d3.timeFormat(this.graph.timeFormat)).ticks(xAxisCount));
             this.graph.svg.insert("g", ":first-child").attr("class", "grid-x").style("stroke-dasharray", "5 5").style("opacity", this.graph.opacity).attr("transform", "translate(0," + this.graph.height + ")").call(d3.axisBottom(this.graph.x).tickSize(-this.graph.height).tickFormat("").ticks(xAxisCount));
+
         } else {
             this.graph.svg.select(".axis-y").transition().duration(500).call(d3.axisLeft(this.graph.y).tickFormat(this.leftAxisFormat).ticks(yAxisCount));
             this.graph.svg.select(".grid-y").transition().duration(500).call(d3.axisLeft(this.graph.y).tickSize(-this.graph.width).tickFormat("").ticks(yAxisCount));
@@ -373,6 +417,36 @@ class LineChart extends Component {
         }
         return name;
     }
+    removeStackFill = () =>{
+        this.graph.svg.select('g.stack-area').selectAll('path.line')
+            .transition()
+            .delay(100)
+            .remove();
+    };
+
+    removeLineFill = () =>{
+        for(const obj of this.props.objects) {
+            for (let counterKey in this.state.counters) {
+                let areaClass = "area-" + obj.objHash + "-" + this.replaceName(counterKey);
+                this.graph.svg.selectAll("path." + areaClass)
+                    .transition()
+                    .delay(100)
+                    .remove();
+            }
+        }
+    };
+    removeLine = () =>{
+        for(const obj of this.props.objects) {
+            for (let counterKey in this.state.counters) {
+                let lineClass = "line-" + obj.objHash + "-" + this.replaceName(counterKey);
+                this.graph.svg.selectAll("path." + lineClass)
+                    .transition()
+                    .delay(100)
+                    .remove();
+            }
+        }
+    };
+
 
     removeObjectLine = (obj, counterKey) => {
         let pathClass = "line-" + obj.objHash + "-" + this.replaceName(counterKey);
@@ -424,13 +498,119 @@ class LineChart extends Component {
 
     };
 
+    drawGroupObjectLine=(thisOption,counterKey) => {
+
+        let instanceMetricCount = {};
+        const color = {};
+        //- instance color making
+        for (const attr  in this.props.objects) {
+            const _obj = this.props.objects[attr];
+            if (_obj.objFamily === thisOption.familyName) {
+                if (!instanceMetricCount[_obj.objHash]) {
+                    instanceMetricCount[_obj.objHash] = 0;
+                }
+                if (this.props.config.graph.color === "metric") {
+                    const _cl = InstanceColor.getMetricColor(thisOption.counterKey, this.props.config.colorType);
+                    color[_obj.objHash] = _cl;
+                } else {
+                    const _cl = InstanceColor.getInstanceColors(this.props.config.colorType)[_obj.objHash][(instanceMetricCount[_obj.objHash]++) % 5];
+                    color[_obj.objHash] = _cl;
+                }
+            }
+        }
+        //- instance data flat data making
+        const stackData = _(this.state.counters[counterKey])
+                            .map((d) => {
+                                const _r = Object.keys(d.data).map(key => {
+                                    const _keyValue = [];
+                                    _keyValue['objHash'] = d.data[key].objHash;
+                                    _keyValue['time']    = d.time;
+                                    _keyValue['value']   = Number(d.data[key].value);
+                                    _keyValue['color']   = color[d.data[key].objHash];
+                                    return _keyValue;
+                                });
+                                return _r;
+                            }).flatMapDepth().value();
+        //- 인스턴스 별 데이터로 변환
+        let ld = d3.nest().key(d => d.objHash).entries(stackData);
+        const _sort = [];
+
+        //- 인스턴스 순서 정렬
+        for (const attr  in this.props.objects) {
+            const _obj = this.props.objects[attr];
+            const _find = _.findIndex(ld, (o) =>  o.key === _obj.objHash);
+            if(_find > -1 ){
+                _sort.push(ld[_find]);
+            }
+
+        }
+        //- 인스턴스 그리기
+        const area = d3.area().curve(d3[this.props.config.graph.curve])
+            .x(d =>{
+                return this.graph.x(d[0]);
+            })
+            .y0(d => this.graph.y(d[2]))
+            .y1(d => this.graph.y(d[1]));
+
+        if (this.props.config.graph.break === "Y") {
+            area.defined((d)=>{
+                return !isNaN(d[0]) && !isNaN(d[1]) && !isNaN(d[2]);
+            })
+        }
+
+        //- 시간 별 Y축 데이터 어그리게이션
+        let pre = {};
+        //- 차트 갱신
+        let paintGroup = this.graph.area.selectAll("path.line")
+                                        .data(_sort)
+                                        .attr("d",(d)=> {
+                                            const _d = _.map(d.values,(_node) =>{
+                                                        const _key = _node.time;
+                                                        const pre_v =  pre[_key] ? pre[_key] : 0;
+                                                        const next_v = pre_v + Number(_node.value);
+                                                        pre[_key] = next_v;
+                                                        return [_node.time,next_v,pre_v];
+                                                    });
+                                            return area(_d);
+                                        });
+
+        //- 차트 생성
+        paintGroup.enter()
+            .append('path')
+            .attr("d",(d)=> {
+                const _d = _.map(d.values,(_node) =>{
+                    const _key = _node.time;
+                    const pre_v =  pre[_key] ? pre[_key] : 0;
+                    const next_v = pre_v + _node.value;
+                    pre[_key] = next_v;
+                    return [_node.time,next_v,pre_v];
+                });
+                return area(_d);
+            })
+            .attr('class',(d)=> `line ${d.key}` )
+            .attr('data-col-name', (d)=> d.key)
+            .style("fill", (d)=> {
+                return color[d.key];
+            })
+            .attr("fill-opacity", this.props.config.graph.fillOpacity)
+            .attr("stroke",(d) =>{
+                return color[d.key];
+            })
+            .style("stroke-width", this.props.config.graph.width)
+            .style("opacity", this.props.config.graph.opacity);
+
+         //- 차트 갱신 후 데이터 삭제
+         paintGroup.exit().remove();
+    };
+
+
     drawObjectLine = (obj, option, counterKey, color) => {
         const that = this;
-
-        if (this.props.config.graph.fill === "Y") {
+        if (this.props.box.values['chartType'] === "LINE FILL") {
 
             let areaClass = "area-" + obj.objHash + "-" + this.replaceName(counterKey);
-            let area = this.graph.svg.selectAll("path." + areaClass);
+            let area = this.graph.svg.selectAll("path." + areaClass)
+
 
             if (area.size() < 1) {
                 area = this.graph.svg.insert("path", ":first-child").attr("class", areaClass).style("stroke", color);
@@ -450,6 +630,7 @@ class LineChart extends Component {
                     }
                 });
 
+
             if (this.props.config.graph.break === "Y") {
                 valueArea.defined(function (d) {
                     let objData = d.data ? d.data[obj.objHash] : null;
@@ -459,11 +640,22 @@ class LineChart extends Component {
 
 
             if (!this.props.filterMap[obj.objHash]) {
-                area.data([that.state.counters[counterKey]]).attr("d", valueArea).style("fill", color).style("opacity", 0);
+                area.data([that.state.counters[counterKey]])
+                    .attr("d", valueArea)
+                    .style("fill", color)
+                    .style("opacity", 0)
+                    .transition()
+                    .delay(100);
             } else {
-                area.data([that.state.counters[counterKey]]).attr("d", valueArea).style("fill", color).style("opacity", this.props.config.graph.fillOpacity);
+                area.data([that.state.counters[counterKey]])
+                    .attr("d", valueArea)
+                    .style("fill", color)
+                    .style("opacity", this.props.config.graph.fillOpacity)
+                    .transition()
+                    .delay(100);
             }
         }
+
 
 
         let pathClass = "line-" + obj.objHash + "-" + this.replaceName(counterKey);
@@ -540,14 +732,14 @@ class LineChart extends Component {
                 this.graphAxis(this.graph.width, this.graph.height, false);
                 if (this.props.objects) {
                     let instanceMetricCount = {};
-
                     for (let counterKey in this.state.counters) {
                         let thisOption = that.props.box.option.filter((d) => {return d.counterKey === counterKey})[0];
-
                         if (!thisOption) {
                             for (let i = 0; i < this.props.objects.length; i++) {
                                 this.removeObjectLine(this.props.objects[i], counterKey);
                             }
+                        } else if(this.chartType ==='STACK AREA') {
+                           this.drawGroupObjectLine(thisOption,counterKey);
                         } else {
                             for (let i = 0; i < this.props.objects.length; i++) {
                                 const obj = that.props.objects[i];
@@ -565,6 +757,7 @@ class LineChart extends Component {
                                     this.drawObjectLine(obj, thisOption, counterKey, color);
                                 }
                             }
+
                         }
                     }
                 }
@@ -611,13 +804,24 @@ class LineChart extends Component {
         let circleKey = "circle-" + obj.objHash + "_" + this.replaceName(thisOption.counterKey);
         let unit = that.state.counters[counterKey][dataIndex].data[obj.objHash] ? that.state.counters[counterKey][dataIndex].data[obj.objHash].unit : "";
 
+        let valueOutput =  obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash]  ? that.state.counters[counterKey][dataIndex].data[obj.objHash].value : null ;
+        if( this.chartType === "STACK AREA"){
+            // - valueOut valid
+            if( valueOutput ){
+                valueOutput = this.counterSum + valueOutput;
+                // change;
+                this.counterSum = valueOutput;
+            }
+
+        }
+
         if (that.state.counters[counterKey][dataIndex].time) {
             if (this.props.filterMap[obj.objHash]) {
                 tooltip.lines.push({
                     instanceName: obj.objName,
                     circleKey: circleKey,
                     metricName: thisOption.title,
-                    value: obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash] ? that.state.counters[counterKey][dataIndex].data[obj.objHash].value : null,
+                    value: obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash] ? valueOutput : null,
                     displayValue: obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash] ? numeral(that.state.counters[counterKey][dataIndex].data[obj.objHash].value).format(this.props.config.numberFormat) + " " + unit : null,
                     color: color
                 });
@@ -641,10 +845,36 @@ class LineChart extends Component {
             svg.remove();
         }
 
-        this.graph.svg = d3.select(this.refs.lineChart).append("svg").attr("width", this.graph.width + this.graph.margin.left + this.graph.margin.right).attr("height", this.graph.height + this.graph.margin.top + this.graph.margin.bottom).append("g").attr("class", "top-group").attr("transform", "translate(" + this.graph.margin.left + "," + this.graph.margin.top + ")");
+        this.graph.svg = d3.select(this.refs.lineChart)
+            .append("svg")
+            .attr("width", this.graph.width + this.graph.margin.left + this.graph.margin.right)
+            .attr("height", this.graph.height + this.graph.margin.top + this.graph.margin.bottom);
+
+        this.graph.svg = this.graph.svg.append("g").attr("class", "top-group")
+                        .attr("transform", "translate(" + this.graph.margin.left + "," + this.graph.margin.top + ")");
+
+
         this.graph.focus = this.graph.svg.append("g").attr("class", "tooltip-focus");
 
+        this.graph.svg.append("defs")
+            .append("svg:clipPath")
+            .attr("id", "area-clip")
+            .attr("x", 0)
+            .attr("y", 0)
+            .append("svg:rect")
+            .attr("width", this.graph.width)
+            .attr("height",  this.graph.height);
+
+
+        this.graph.area = this.graph.svg.append("g")
+            .attr("class", "stack-area");
+            // .attr("clip-path","url(#area-clip)");
+
+
         this.graph.overlay = this.graph.svg.append("rect").attr("class", "tooltip-overlay").attr("width", this.graph.width).attr("height", this.graph.height);
+
+
+
 
         this.graph.overlay.on("mouseover", function () {
             let layer = that.refs.lineChartRoot.parentNode.parentNode.parentNode.parentNode.parentNode;
@@ -748,7 +978,7 @@ class LineChart extends Component {
                 if (!thisOption) {
                     break;
                 }
-
+                that.counterSum = 0;
                 for (let i = 0; i < that.props.objects.length; i++) {
                     const obj = that.props.objects[i];
                     if (thisOption.familyName === obj.objFamily) {
@@ -791,6 +1021,8 @@ class LineChart extends Component {
                 }
             }
 
+            tooltip.chartType = that.chartType;
+            tooltip.counterSum = numeral(that.counterSum).format(that.props.config.numberFormat);
             that.graph.currentTooltipTime = tooltip.timeValue;
             that.props.showTooltip(xPos, yPos, that.graph.margin.left, that.graph.margin.top, tooltip);
         });
