@@ -7,6 +7,7 @@ import * as _ from "lodash";
 import ServerDate from "../../../common/ServerDate";
 import InstanceColor from "../../../common/InstanceColor";
 import numeral from "numeral";
+import {setTimeFocus} from "../../../actions";
 
 
 class LineChart extends Component {
@@ -15,6 +16,7 @@ class LineChart extends Component {
     lastCountersHistoryTime = null;
     historyInit = {};
     chartType = "LINE";
+    timeFocusId = null;
     graph = {
         margin: {
             top: 15, right: 15, bottom: 25, left: 40
@@ -188,8 +190,22 @@ class LineChart extends Component {
             });
 
         }
-        this.chartType = nextProps.box.values['chartType'];
+        //- 이전 툴팁이 고정 되었으면 자동 해지 할수 있도록 이벤트 체크
+        if( this.timeFocusId
+            && !this.props.timeFocus.keep
+            &&  this.timeFocusId === this.props.box.key){
+            this.manualTooltipHide();
+            this.timeFocusId = null;
+        }
 
+        if( this.props.timeFocus.keep && this.props.box.key === nextProps.timeFocus.id){
+            this.timeFocusId = nextProps.timeFocus.id;
+        }
+        //-
+        this.chartType = nextProps.box.values['chartType'];
+        if(!this.props.timeFocus.keep) {
+            this.drawTimeFocus();
+        }
     }
 
     loadHistoryCounter(countersHistory, counterKey, longTerm) {
@@ -352,9 +368,9 @@ class LineChart extends Component {
             this.draw();
             this.removeObjLine(prevProps.objects, this.props.objects);
         }
-
-
     };
+
+
 
     moveTooltip = () => {
         if (this.graph.currentTooltipTime) {
@@ -405,7 +421,23 @@ class LineChart extends Component {
             this.graph.svg.select(".axis-y").transition().duration(500).call(d3.axisLeft(this.graph.y).tickFormat(this.leftAxisFormat).ticks(yAxisCount));
             this.graph.svg.select(".grid-y").transition().duration(500).call(d3.axisLeft(this.graph.y).tickSize(-this.graph.width).tickFormat("").ticks(yAxisCount));
         }
+
+
     };
+
+    manualTooltipHide = ( ) =>{
+
+        let layer = this.refs.lineChartRoot.parentNode.parentNode.parentNode.parentNode.parentNode;
+        layer.style.zIndex = 5;
+        this.graph.focus.selectAll("circle").style("display", "none");
+
+        let hoverLine = this.graph.focus.select("line.x-hover-line");
+        if (hoverLine.size() > 0) {
+            hoverLine.style("display", "none");
+        }
+        this.props.hideTooltip();
+    };
+
 
     replaceAll(str, searchStr, replaceStr) {
         return str.split(searchStr).join(replaceStr);
@@ -720,7 +752,6 @@ class LineChart extends Component {
     draw = () => {
 
         let that = this;
-
         if (this.drawTimer) {
             clearTimeout(this.drawTimer);
             this.drawTimer = null;
@@ -764,9 +795,40 @@ class LineChart extends Component {
             }
 
             this.moveTooltip();
+            if(this.props.timeFocus.keep) {
+                this.drawTimeFocus();
+            }
         }, 200);
 
     };
+
+
+    drawTimeFocus=()=>{
+
+        if( !this.state.noData
+            && this.props.timeFocus.active
+            && this.props.timeFocus.id !== this.props.box.key) {
+            let hoverLine = this.graph.focus.selectAll("line.focus-line");
+            hoverLine.attr("x1", (d) =>this.graph.x(d))
+                .attr("x2", (d) =>this.graph.x(d));
+
+            hoverLine.data([this.props.timeFocus.time])
+                .enter()
+                .append("line")
+                .attr("class", "focus-line focus-hover-line")
+                .attr("y1", 0)
+                .attr("y2", this.graph.height)
+                .attr("x1", (d) =>{
+                    return this.graph.x(d);
+                })
+                .attr("x2", (d) =>this.graph.x(d))
+                .exit()
+                .remove();
+        }else{
+            this.graph.focus.select("line.focus-line").remove();
+        }
+    };
+
 
 
     graphResize = () => {
@@ -775,6 +837,7 @@ class LineChart extends Component {
         if ((box.offsetWidth - this.graph.margin.left - this.graph.margin.right !== this.graph.width) || (this.graph.height !== box.offsetHeight - this.graph.margin.top - this.graph.margin.bottom - 27)) {
             resized = true;
             this.graphInit();
+            this.manualTooltipHide();
         }
 
         return resized;
@@ -804,15 +867,11 @@ class LineChart extends Component {
         let circleKey = "circle-" + obj.objHash + "_" + this.replaceName(thisOption.counterKey);
         let unit = that.state.counters[counterKey][dataIndex].data[obj.objHash] ? that.state.counters[counterKey][dataIndex].data[obj.objHash].unit : "";
 
-        let valueOutput =  obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash]  ? that.state.counters[counterKey][dataIndex].data[obj.objHash].value : null ;
-        if( this.chartType === "STACK AREA"){
-            // - valueOut valid
-            if( valueOutput ){
-                valueOutput = this.counterSum + valueOutput;
-                // change;
-                this.counterSum = valueOutput;
-            }
-
+        let valueOutput = obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash]  ? that.state.counters[counterKey][dataIndex].data[obj.objHash].value : null ;
+        const valueOrigin = obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash]  ? that.state.counters[counterKey][dataIndex].data[obj.objHash].value : null ;
+        if( this.chartType === "STACK AREA" && valueOutput ){
+            valueOutput = this.counterSum + valueOutput;
+            this.counterSum = valueOutput;
         }
 
         if (that.state.counters[counterKey][dataIndex].time) {
@@ -821,8 +880,8 @@ class LineChart extends Component {
                     instanceName: obj.objName,
                     circleKey: circleKey,
                     metricName: thisOption.title,
-                    value: obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash] ? valueOutput : null,
-                    displayValue: obj.objHash && that.state.counters[counterKey][dataIndex].data[obj.objHash] ? numeral(that.state.counters[counterKey][dataIndex].data[obj.objHash].value).format(this.props.config.numberFormat) + " " + unit : null,
+                    value: valueOutput ? valueOutput : null,
+                    displayValue: valueOrigin ? numeral(valueOrigin).format(this.props.config.numberFormat) + " " + unit : null,
                     color: color
                 });
             }
@@ -850,25 +909,25 @@ class LineChart extends Component {
             .attr("width", this.graph.width + this.graph.margin.left + this.graph.margin.right)
             .attr("height", this.graph.height + this.graph.margin.top + this.graph.margin.bottom);
 
-        this.graph.svg = this.graph.svg.append("g").attr("class", "top-group")
-                        .attr("transform", "translate(" + this.graph.margin.left + "," + this.graph.margin.top + ")");
-
-
-        this.graph.focus = this.graph.svg.append("g").attr("class", "tooltip-focus");
-
-        this.graph.svg.append("defs")
+        d3.select(this.refs.lineChart).select("svg").append("defs")
             .append("svg:clipPath")
-            .attr("id", "area-clip")
+            .attr("id", `area-clip${this.props.box.key}`)
+            .append("svg:rect")
             .attr("x", 0)
             .attr("y", 0)
-            .append("svg:rect")
             .attr("width", this.graph.width)
             .attr("height",  this.graph.height);
 
+        this.graph.svg = this.graph.svg.append("g").attr("class", "top-group")
+                        .attr("transform", "translate(" + this.graph.margin.left + "," + this.graph.margin.top + ")");
+
+        this.graph.focus = this.graph.svg.append("g").attr("class", "tooltip-focus");
 
         this.graph.area = this.graph.svg.append("g")
-            .attr("class", "stack-area");
-            // .attr("clip-path","url(#area-clip)");
+            .attr("class", "stack-area")
+            .attr("clip-path",`url(#area-clip${this.props.box.key})`)
+            .append("g");
+
 
 
         this.graph.overlay = this.graph.svg.append("rect").attr("class", "tooltip-overlay").attr("width", this.graph.width).attr("height", this.graph.height);
@@ -877,6 +936,10 @@ class LineChart extends Component {
 
 
         this.graph.overlay.on("mouseover", function () {
+            if(that.props.timeFocus.keep) {
+                return;
+            }
+
             let layer = that.refs.lineChartRoot.parentNode.parentNode.parentNode.parentNode.parentNode;
             layer.style.zIndex = 9;
 
@@ -914,25 +977,39 @@ class LineChart extends Component {
             //that.props.showTooltip();
         });
         this.graph.overlay.on("mouseout", function () {
+            if(!that.props.timeFocus.keep) {
+                let layer = that.refs.lineChartRoot.parentNode.parentNode.parentNode.parentNode.parentNode;
+                layer.style.zIndex = 5;
+                that.graph.focus.selectAll("circle").style("display", "none");
 
-            let layer = that.refs.lineChartRoot.parentNode.parentNode.parentNode.parentNode.parentNode;
-            layer.style.zIndex = 5;
-
-            let hoverLine = that.graph.focus.select("line.x-hover-line");
-            if (hoverLine.size() > 0) {
-                hoverLine.style("display", "none");
+                let hoverLine = that.graph.focus.select("line.x-hover-line");
+                if (hoverLine.size() > 0) {
+                    hoverLine.style("display", "none");
+                }
+                that.props.hideTooltip();
+                that.props.setTimeFocus(false, null, that.props.box.key);
             }
 
-            that.graph.focus.selectAll("circle").style("display", "none");
-
-            that.props.hideTooltip();
         });
 
         this.graph.bisector = d3.bisector(function (d) {
             return d.time;
         }).left;
 
+        this.graph.overlay.on("dblclick",()=>{
+            this.props.setTimeFocus(
+                    this.props.timeFocus.active,
+                    this.props.timeFocus.time,
+                    this.props.timeFocus.id,
+                    !this.props.timeFocus.keep
+                );
+        });
+
         this.graph.overlay.on("mousemove", function () {
+            if(that.props.timeFocus.keep){
+                return;
+            }
+
 
             let tooltip = {};
             tooltip.lines = [];
@@ -1024,7 +1101,10 @@ class LineChart extends Component {
             tooltip.chartType = that.chartType;
             tooltip.counterSum = numeral(that.counterSum).format(that.props.config.numberFormat);
             that.graph.currentTooltipTime = tooltip.timeValue;
+
+            that.props.setTimeFocus(true, x0.getTime(), that.props.box.key);
             that.props.showTooltip(xPos, yPos, that.graph.margin.left, that.graph.margin.top, tooltip);
+
         });
 
         this.graphAxis(this.graph.width, this.graph.height, true);
@@ -1072,9 +1152,16 @@ let mapStateToProps = (state) => {
     return {
         objects: state.target.objects,
         config: state.config,
-        filterMap: state.target.filterMap
+        filterMap: state.target.filterMap,
+        timeFocus: state.timeFocus
     };
 };
 
-LineChart = connect(mapStateToProps, undefined)(LineChart);
+let mapDispatchToProps = (dispatch) => {
+    return {
+        setTimeFocus: (active, time, boxKey,keep) => dispatch(setTimeFocus(active, time, boxKey,keep))
+    };
+};
+
+LineChart = connect(mapStateToProps, mapDispatchToProps)(LineChart);
 export default withRouter(LineChart);
