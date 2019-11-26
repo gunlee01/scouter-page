@@ -324,7 +324,11 @@ class XLog extends Component {
                                 break;
                             default :
                                 // normal
-                                context.drawImage(this._objBrush[d.objHash], x - this.graph.clazzBrush.gabX, dy - this.graph.clazzBrush.gabY, this.graph.clazzBrush.width, this.graph.clazzBrush.height);
+                                if(this._objBrush[d.objHash]) {
+                                    context.drawImage(this._objBrush[d.objHash], x - this.graph.clazzBrush.gabX, dy - this.graph.clazzBrush.gabY, this.graph.clazzBrush.width, this.graph.clazzBrush.height);
+                                }else{
+                                    console.log('warning..');
+                                }
                                 break;
                         }
                     }
@@ -361,28 +365,19 @@ class XLog extends Component {
 
         }
     };
-    classicBrushEmptyFill(ctx, alpha){
+    classBrushEmptyFill(ctx,alpha){
         // 나머지 white 로 변경
-        const color = this.props.config.theme === 'theme-gray' ? '35,35,35':'238,239,239';
-        ctx.fillStyle=`rgba(${color},${alpha})`;
+        const backGroundColor = this.props.config.colorType === 'white' ? '255,255,255' : '0,0,0' ;
+        ctx.fillStyle=`rgba(${backGroundColor},${alpha})`;
         ctx.fillRect(1,0,1,1);
-        ctx.fillStyle=`rgba(${color},${alpha})`;
+        ctx.fillStyle=`rgba(${backGroundColor},${alpha})`;
         ctx.fillRect(4,1,1,1);
-        ctx.fillStyle=`rgba(${color},${alpha})`;
+        ctx.fillStyle=`rgba(${backGroundColor},${alpha})`;
         ctx.fillRect(0,3,1,1);
-        ctx.fillStyle=`rgba(${color},${alpha})`;
+        ctx.fillStyle=`rgba(${backGroundColor},${alpha})`;
         ctx.fillRect(3,4,1,1);
-    };
-    clssicWindmillFill(ctx){
-        for (let r = 0; r < this.props.config.xlog.classicMode.rows; r++) {
-            for (let c = 0; c < this.props.config.xlog.classicMode.columns; c++) {
-                if (this.props.config.xlog.classicMode.fills[`D_${r}_${c}`]) {
-                    ctx.fillRect(r, c, 1, 1);
-                }
-            }
-        }
-    };
-    classicBrush=(brush, hash, state='normal', isAysnc=false) =>{
+    }
+    classBrush=(brush,hash, state='normal',isAysnc=false) =>{
 
         const ctx = brush.getContext('2d');
         // 전체 사각형 그리기
@@ -390,7 +385,7 @@ class XLog extends Component {
             case 'async':
                 ctx.fillStyle='#BBBBBB';
                 ctx.fillRect(0,0,5,5);
-                this.classicBrushEmptyFill(ctx,1);
+                this.classBrushEmptyFill(ctx,1);
                 break;
             case 'error':
                 if(isAysnc) {
@@ -399,13 +394,12 @@ class XLog extends Component {
                     ctx.fillStyle = `#E33733`;
                 }
                 ctx.fillRect(0,0,5,5);
-                this.classicBrushEmptyFill(ctx,1);
+                this.classBrushEmptyFill(ctx,1);
                 break;
             default :
                 ctx.fillStyle = this.getColor(hash);
-                // this.clssicWindmillFill(ctx);
                 ctx.fillRect(0,0,5,5);
-                this.classicBrushEmptyFill(ctx,1);
+                this.classBrushEmptyFill(ctx,1);
                 break;
         }
     };
@@ -722,7 +716,7 @@ class XLog extends Component {
                 }
             }
         }else{
-            this.classicBrush(this.graph.normalBrush,"", 'async');
+            this.classBrush(this.graph.normalBrush,"", 'async');
         }
 
         this.graph.asyncBrush = document.createElement("canvas");
@@ -744,7 +738,7 @@ class XLog extends Component {
                 }
             }
         }else{
-            this.classicBrush(this.graph.asyncBrush,"", 'error',true);
+            this.classBrush(this.graph.asyncBrush,"", 'error',true);
         }
 
         this.graph.errorBrush = document.createElement("canvas");
@@ -768,7 +762,7 @@ class XLog extends Component {
         }else{
             this.graph.errorBrush.width = this.props.config.xlog.classicMode.columns;
             this.graph.errorBrush.height = this.props.config.xlog.classicMode.rows;
-            this.classicBrush(this.graph.errorBrush,"", 'error',false);
+            this.classBrush(this.graph.errorBrush,"", 'error',false);
         }
         if(this.isClassMode()){
             this._objBrush = [];
@@ -777,7 +771,7 @@ class XLog extends Component {
                     const objBrush= document.createElement("canvas");
                     objBrush.width = this.props.config.xlog.classicMode.columns;
                     objBrush.height = this.props.config.xlog.classicMode.rows;
-                    this.classicBrush(objBrush, _d.objHash);
+                    this.classBrush(objBrush, _d.objHash);
                     this._objBrush[_d.objHash] = objBrush;
                 })
         }

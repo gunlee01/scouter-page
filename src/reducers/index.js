@@ -56,6 +56,8 @@ const configState = {
         }
     ],
     interval: 2000,
+    realTimeLastRange : 10,
+    realTimeXLogLastRange : 10,
     preload: "Y",
     alertInterval : 60,
     numberFormat: "0,0.0",
@@ -67,8 +69,8 @@ const configState = {
     colorType : "white",
     graph : {
         color : "instance",
-        width : 1,
-        opacity : 0.7,
+        width : 2,
+        opacity : 1,
         fill : "N",
         fillOpacity : 0.4,
         curve : "curveCatmullRom",
@@ -277,6 +279,7 @@ const configState = {
         basic : "NanumSquare",
         menu : "Bungee",
         axis : "Bungee",
+        axisFontSize : "8px",
         tooltip : "NanumSquare",
         profiler : "NanumSquare"
     },
