@@ -15,6 +15,7 @@ import {
     setFilterMap,
     setLayouts,
     setPresetName,
+    setServerId,
     setTarget
 } from "../../actions";
 import {connect} from "react-redux";
@@ -30,22 +31,21 @@ import * as PaperIcons from "../../common/PaperIcons";
 import LayoutManager from "../Menu/LayoutManager/LayoutManager";
 import PresetManager from "../Menu/PresetManager/PresetManager";
 import * as _ from "lodash";
+import * as common from "../../common/common";
 import {
     buildHttpProtocol,
     errorHandler,
-    getCurrentUser,
     getDefaultServerConfig,
     getDefaultServerConfigIndex,
     getHttpProtocol,
-    getWithCredentials,
-    setAuthHeader,
+    getParam,
     setData,
     setRangePropsToUrl,
-    setServerTimeGap
+    setServerTimeGap,
+    setTargetServerToUrl
 } from "../../common/common";
-import jQuery from "jquery";
 import PaperControl from "../Paper/PaperControl/PaperControl";
-import * as common from "../../common/common";
+import ScouterApi from "../../common/ScouterApi";
 
 
 class Controller extends Component {
@@ -55,6 +55,7 @@ class Controller extends Component {
         this.state = {
             servers: [],
             activeServerId: null,
+            counterInfo: {},
             objects: [],
             selectedObjects: JSON.parse(localStorage.getItem("selectedObjects")) || {},
             filter: "",
@@ -67,17 +68,17 @@ class Controller extends Component {
     }
 
     componentDidMount() {
+
         if (getDefaultServerConfig(this.props.config).authentification !== "bearer") {
-            this.setTargetFromUrl(this.props);
+            this.setTargetFromUrl();
         } else {
             let defaultServerConfig = getDefaultServerConfig(this.props.config);
             let origin = defaultServerConfig.protocol + "://" + defaultServerConfig.address + ":" + defaultServerConfig.port;
             if (this.props.config || (this.props.user[origin] && this.props.user[origin].id)) {
-                this.setTargetFromUrl(this.props);
+                this.setTargetFromUrl();
             }
         }
         common.setTargetServerToUrl(this.props, this.props.config);
-
         if (localStorage.getItem("selectedObjects")) {
             let selectedObjects = JSON.parse(localStorage.getItem("selectedObjects"));
             if (selectedObjects.objects) {
@@ -87,7 +88,8 @@ class Controller extends Component {
             }
         }
 
-        this.getConfigServerName(this.props)
+        this.getConfigServerName();
+
 
     }
 
@@ -105,6 +107,11 @@ class Controller extends Component {
                 currentTab: "CONTROL"
             });
         }
+        if (this.props.serverId.server) {
+            if( this.props.serverId.server[0].id !== nextProps.serverId.server[0].id) {
+                this.changeServerName(nextProps.serverId)
+            }
+        }
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -118,43 +125,56 @@ class Controller extends Component {
     }
 
     setObjectUpdate() {
-        const _urlObjectHashs = [new URLSearchParams(this.props.location.search).get('objects'),
-            new URLSearchParams(this.props.location.search).get('instances')]
-            .filter(_urlObjHashs => _urlObjHashs ? true : false);
+
+        const _urlObjectHashs = [ new URLSearchParams(this.props.location.search).get('objects'),
+                                  new URLSearchParams(this.props.location.search).get('instances')]
+                                 .filter(_urlObjHashs => _urlObjHashs ? true : false);
         try {
-            const [_objectHashs] = _urlObjectHashs;
-            const that = this.props;
-            jQuery.ajax({
-                method: "GET",
-                async: false,
-                url: `${getHttpProtocol(this.props.config)}/scouter/v1/object?serverId=${this.state.activeServerId}`,
-                xhrFields: getWithCredentials(this.props.config),
-                beforeSend: function (xhr) {
-                    setAuthHeader(xhr, that.config, getCurrentUser(that.config, that.user));
-                }
-            }).done((msg) => {
-                const objects = msg.result;
-                if (objects) {
-                    if (_objectHashs) {
-                        const _selectorObjHashs = _objectHashs.split(",").map(d => Number(d));
-                        const _selectedObjects = objects.filter(_obj => {
-                            return _selectorObjHashs.filter(_select => _select === Number(_obj.objHash)).length > 0;
-                        }).sort((a, b) => a.objName < b.objName ? -1 : 1);
-                        const _selectedObjectsMap = _selectedObjects.reduce((obj, item) => {
-                            obj[item.objHash] = item;
-                            return obj;
-                        }, {});
-                        this.setState({
-                            objects: objects,
-                            selectedObjects: _selectedObjectsMap
-                        });
-                    } else {
-                        this.setState({
-                            objects: objects
-                        });
+            const _conf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,this.state.activeServerId);
+            const _promise = [ScouterApi.getInstanceObjects(_conf),ScouterApi.getCounterModel(_conf)];
+            Promise.all(_promise).then((msg) => {
+                const [instanceObj,countInfo] = msg;
+                if (instanceObj.result) {
+                    const objects = instanceObj.result;
+                    let objTypesMap = {};
+                    let familyNameIcon = {};
+                    countInfo.result.objTypes.forEach((objType) => {
+                        objTypesMap[objType.name] = objType;
+                        familyNameIcon[objType.familyName] = objType.icon;
+                    });
+                    this.setState({
+                        counterInfo: {
+                            families: countInfo.result.families,
+                            objTypesMap : objTypesMap,
+                            familyNameIcon : familyNameIcon
+                        }
+
+                    });
+                    if (objects) {
+                        const [_objectHashs] = _urlObjectHashs;
+                        if (_objectHashs) {
+                            const _selectorObjHashs = _objectHashs.split(",").map(d => Number(d));
+                            const _selectedObjects = objects.filter(_obj => {
+                                return _selectorObjHashs.filter(_select => _select === Number(_obj.objHash)).length > 0;
+                            }).sort((a, b) => a.objName < b.objName ? -1 : 1);
+                            const _selectedObjectsMap = _selectedObjects.reduce((obj, item) => {
+                                obj[item.objHash] = item;
+                                return obj;
+                            }, {});
+                            this.setState({
+                                objects: objects,
+                                selectedObjects: _selectedObjectsMap
+                            });
+                        } else {
+                            this.setState({
+                                objects: objects
+                            });
+                        }
                     }
                 }
+
             });
+
         } catch (error) {
             console.error(error);
         }
@@ -191,52 +211,63 @@ class Controller extends Component {
             selector: !this.state.preset ? false : this.state.preset
         });
     };
-
-    getConfigServerName = (props) => {
-        let allServerList = buildHttpProtocol(props.config);
-        let allCount = allServerList.length;
-        let doneCount = 0;
-        let serverNameMap = {};
+    changeServerName = (serverId) =>{
+       const  _server = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,serverId.server[0].id);
+       const _searchServerId = serverId.server[0].id;
+       ScouterApi.getConnectedServer(_server)
+            .done(msg => {
+                if (msg.result && msg.result.length > 0) {
+                    msg.result.filter(server => server.id === _searchServerId)
+                               .forEach( server =>{
+                                    const name = `${server.name} (${getHttpProtocol(this.props.config)})`;
+                                    const _conf = _.clone(this.props.config);
+                                    _conf.servers.filter(_server => _server.default)
+                                        .forEach(_server => {
+                                            _server.name = name;
+                                            _server.id = _searchServerId;
+                                        });
+                                    this.props.setConfig(_conf);
+                                });
+                }
+            })
+    };
+    getScouterApiServerId = () => {
+        return this.props.serverId.server? this.props.serverId.server[0].id : getParam(this.props,'activesid');
+    };
+    getConfigServerName = () => {
+        let allServerList = buildHttpProtocol(this.props.config);
+        let serverNames = {};
 
         if (allServerList) {
             allServerList.forEach((server) => {
-                jQuery.ajax({
-                    method: "GET",
-                    async: true,
-                    url: `${server.addr}/scouter/v1/info/server`,
-                    xhrFields: server.authentification === "cookie",
-                    timeout: 3000,
-                    beforeSend: function (xhr) {
-                        const _tokenInfo = props.user[server.addr];
-                        if (server.authentication === "bearer" && _tokenInfo) {
-                            xhr.setRequestHeader('Authorization', ['bearer ', _tokenInfo.token].join(''));
-                        }
-                    }
-                }).done((msg) => {
-                    doneCount++;
-
+                const  _server = common.confBuilder(server.addr,this.props.config,this.props.user,null);
+                ScouterApi.getConnectedServer(_server)
+                .done(msg => {
                     if (msg.result && msg.result.length > 0) {
-                        serverNameMap[server.key] = { info : msg.result[0]};
+                        const _filter = msg.result.filter(s => s.id === this.getScouterApiServerId())
+                        const _info = _filter.length > 0 ? _filter[0] : msg.result[0];
+                        serverNames[server.key] = { info : _info};
 
                     } else {
-                        serverNameMap[server.key] = {};
+                        serverNames[server.key] =  {
+                            info : { name : "FAILED TO GET NAME", id : "-1"}
+                        };
                     }
                 }).fail(() => {
-                    doneCount++;
-                    serverNameMap[server.key] = {
+                    serverNames[server.key] = {
                         info : { name : "FAILED TO GET NAME", id : "-1"}
                     };
                 }).always(() => {
-                    if (doneCount >= allCount) {
-                        let _conf = _.clone(props.config);
-                        _conf.servers.forEach((server, idx) => {
-                            if (serverNameMap[idx]) {
-                                server.name = `${serverNameMap[idx].info.name} (${server.name})`;
-                                server.id = serverNameMap[idx].info.id;
-                            }
-                        });
-                        props.setConfig(_conf);
-                    }
+                    let _conf = _.clone(this.props.config);
+                    _conf.servers.forEach((server, idx) => {
+                        if (serverNames[idx]) {
+
+                            server.name = `${serverNames[idx].info.name} (${server.protocol}://${server.address}:${server.port})`;
+                            server.id = serverNames[idx].info.id;
+                        }
+                    });
+                    this.props.setConfig(_conf);
+
                 });
 
             })
@@ -246,7 +277,6 @@ class Controller extends Component {
     onChangeScouterServer = (inx) => {
         const config = JSON.parse(JSON.stringify(this.props.config));
         const currentServer = common.getServerInfo(config);
-
         for (let i = 0; i < config.servers.length; i++) {
             if (i === inx) {
                 config.servers[i].default = true;
@@ -266,20 +296,21 @@ class Controller extends Component {
         if (localStorage) {
             localStorage.setItem("config", JSON.stringify(config));
         }
+        this.setState({
+            selectedObjects: {},
+        },() => {
+            setTargetServerToUrl(this.props, config);
+            common.replaceAllLocalSettingsForServerChange(currentServer, this.props, config);
+            common.clearAllUrlParamOfPaper(this.props, config);
+            window.location.reload();
+        });
 
-        common.setTargetServerToUrl(this.props, config);
-        common.replaceAllLocalSettingsForServerChange(currentServer, this.props, config);
-        common.clearAllUrlParamOfPaper(this.props, config);
-        //- server가 바뀌어 쓰므로 해당 설정이 같이 삭제 되어야함
-        localStorage.removeItem("selectedObjects");
-        localStorage.removeItem("topologyOptions");
-        localStorage.removeItem("topologyPosition");
-        window.location.reload();
 
     };
 
     setObjects = () => {
         let objects = [];
+
         for (let hash in this.state.selectedObjects) {
             objects.push(this.state.selectedObjects[hash]);
         }
@@ -288,12 +319,20 @@ class Controller extends Component {
             this.props.pushMessage("info", "NO MONITORING TARGET", "At least one object must be selected");
             this.props.setControlVisibility("Message", true);
         }
-
         objects.sort((a, b) => a.objName < b.objName ? -1 : 1);
         AgentColor.setInstances(objects, this.props.config.colorType);
         this.props.setTarget(objects);
+        const {activeServerId } = this.state;
+        const defaultServerId = activeServerId ? activeServerId : this.getScouterApiServerId();
+
         this.props.setControlVisibility("TargetSelector", false);
-        setRangePropsToUrl(this.props, undefined, objects);
+
+        if(defaultServerId) {
+            this.props.setServerId([{id: defaultServerId, obj: objects}]);
+        }
+        setRangePropsToUrl(this.props, undefined, objects,defaultServerId);
+
+
         localStorage.setItem("selectedObjects", JSON.stringify(objects));
         this.closeSelectorPopup();
     };
@@ -331,71 +370,65 @@ class Controller extends Component {
 
 
     onServerClick = (serverId) => {
-        let that = this;
         this.props.addRequest();
-        jQuery.ajax({
-            method: "GET",
-            async: true,
-            url: getHttpProtocol(this.props.config) + '/scouter/v1/object?serverId=' + serverId,
-            xhrFields: getWithCredentials(that.props.config),
-            beforeSend: function (xhr) {
-                setAuthHeader(xhr, that.props.config, getCurrentUser(that.props.config, that.props.user));
-            },
-        }).done((msg) => {
-            if (msg.result) {
-                that.setState({
-                    activeServerId: serverId
+        const _conf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,serverId);
+        const _promise = [ScouterApi.getInstanceObjects(_conf),ScouterApi.getCounterModel(_conf)];
+        Promise.all(_promise).then((msg) => {
+            const [instanceObj,countInfo] = msg;
+            if (instanceObj.result) {
+                const objects = instanceObj.result;
+                let objTypesMap = {};
+                let familyNameIcon = {};
+                countInfo.result.objTypes.forEach((objType) => {
+                    objTypesMap[objType.name] = objType;
+                    familyNameIcon[objType.familyName] = objType.icon;
                 });
+                this.setState({
+                    activeServerId: serverId,
+                    servers: this.state.servers.map(host => ({...host,selectedObjectCount: null}) ),
+                    selectedObjects: {} ,
+                    counterInfo: {
+                        families: countInfo.result.families,
+                        objTypesMap : objTypesMap,
+                        familyNameIcon : familyNameIcon
+                    }
 
-                const objects = msg.result;
+                });
                 if (objects) {
                     objects.sort((a, b) => a.objName < b.objName ? -1 : 1);
                     this.setState({
-                        objects: msg.result
+                        objects: instanceObj.result,
                     });
                 }
             }
-        }).fail((xhr, textStatus, errorThrown) => {
-            errorHandler(xhr, textStatus, errorThrown, that.props, "onServerClick", true);
+
         });
     };
 
 
     applyPreset = (preset) => {
         let that = this;
-        let props = this.props;
+
 
         this.props.addRequest();
-        jQuery.ajax({
-            method: "GET",
-            async: true,
-            url: getHttpProtocol(props.config) + '/scouter/v1/info/server',
-            xhrFields: getWithCredentials(props.config),
-            beforeSend: function (xhr) {
-                setAuthHeader(xhr, props.config, getCurrentUser(props.config, props.user));
-            }
-        }).done((msg) => {
+        const _conf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,null);
+        ScouterApi.getConnectedServer(_conf)
+        .done(msg => {
 
             if (msg && msg.result) {
-
                 let servers = msg.result;
-
                 if (servers.length > 0) {
                     if (!servers[0].version) {
-                        props.pushMessage("error", "Not Supported", "Paper 2.0 is available only on Scout Server 2.0 and later.");
-                        props.setControlVisibility("Message", true);
+                        this.props.pushMessage("error", "Not Supported", "Paper 2.0 is available only on Scout Server 2.0 and later.");
+                        this.props.setControlVisibility("Message", true);
                         return;
                     }
                 }
-
                 //현재 멀티서버와 연결된 scouter webapp은 지원하지 않으므로 일단 단일 서버로 가정하고 마지막 서버 시간과 맞춘다.
                 servers.forEach((server) => {
                     setServerTimeGap(Number(server.serverTime) - new Date().valueOf());
                 });
-
-
                 // GET INSTANCES INFO FROM URL IF EXISTS
-
                 let urlObjectHashes = preset.objects.map((d) => {
                     return Number(d)
                 });
@@ -407,20 +440,11 @@ class Controller extends Component {
                     servers.forEach((server) => {
                         //일단 단일 서버로 가정하고 서버 시간과 맞춘다.
                         setServerTimeGap(Number(server.serverTime) - new Date().valueOf());
-
-                        jQuery.ajax({
-                            method: "GET",
-                            async: false,
-                            url: getHttpProtocol(this.props.config) + '/scouter/v1/object?serverId=' + server.id,
-                            xhrFields: getWithCredentials(props.config),
-                            beforeSend: function (xhr) {
-                                setAuthHeader(xhr, props.config, getCurrentUser(props.config, props.user));
-                            }
-                        }).done(function (msg) {
+                        const _sconf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,server.id);
+                        ScouterApi.getSyncInstanceObjects(_sconf)
+                        .done(msg => {
                             objects = msg.result;
-
                             if (objects && objects.length > 0) {
-
                                 objects.forEach((instance) => {
                                     urlObjectHashes.forEach((objHash) => {
                                         if (objHash === Number(instance.objHash)) {
@@ -436,7 +460,7 @@ class Controller extends Component {
                                 })
                             }
                         }).fail(function (xhr, textStatus, errorThrown) {
-                            errorHandler(xhr, textStatus, errorThrown, that.props, "applyPreset_1", true);
+                            errorHandler(xhr, textStatus, errorThrown, this.props, "applyPreset_1", true);
                         });
                     });
 
@@ -457,7 +481,7 @@ class Controller extends Component {
 
                         AgentColor.setInstances(selectedObjects, this.props.config.colorType);
                         this.props.setTarget(selectedObjects);
-
+                        this.props.setServerId( [ {id: activeServerId, obj: objects} ] );
                     } else {
                         this.setState({
                             servers: servers
@@ -478,28 +502,19 @@ class Controller extends Component {
 
     };
 
-    setTargetFromUrl = (props) => {
-
-        let that = this;
+    setTargetFromUrl = () => {
         if (!this.init) {
             this.props.addRequest();
-            jQuery.ajax({
-                method: "GET",
-                async: true,
-                url: getHttpProtocol(props.config) + '/scouter/v1/info/server',
-                xhrFields: getWithCredentials(props.config),
-                beforeSend: function (xhr) {
-                    setAuthHeader(xhr, props.config, getCurrentUser(props.config, props.user));
-                }
-            }).done((msg) => {
-
+            const conf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,this.getScouterApiServerId());
+            ScouterApi.getConnectedServer(conf)
+            .done((msg) => {
                 if (msg && msg.result) {
-                    that.init = true;
+                    this.init = true;
                     let servers = msg.result;
                     if (servers.length > 0) {
                         if (!servers[0].version) {
-                            props.pushMessage("error", "Not Supported", "Paper 2.0 is available only on Scout Server 2.0 and later.");
-                            props.setControlVisibility("Message", true);
+                            this.props.pushMessage("error", "Not Supported", "Paper 2.0 is available only on Scout Server 2.0 and later.");
+                            this.props.setControlVisibility("Message", true);
                             return;
                         }
                     }
@@ -529,23 +544,17 @@ class Controller extends Component {
                         let selectedObjects = [];
                         let objects = [];
                         let activeServerId = null;
-                        servers.forEach((server) => {
+                        servers.forEach(server => {
+
                             //일단 단일 서버로 가정하고 서버 시간과 맞춘다.
                             setServerTimeGap(Number(server.serverTime) - new Date().valueOf());
-
+                            const _sconf = common.confBuilder(getHttpProtocol(this.props.config),this.props.config,this.props.user,server.id);
                             if (presetName) {
-                                jQuery.ajax({
-                                    method: "GET",
-                                    async: true,
-                                    url: getHttpProtocol(props.config) + "/scouter/v1/kv/__scouter_paper_preset",
-                                    xhrFields: getWithCredentials(props.config),
-                                    beforeSend: function (xhr) {
-                                        setAuthHeader(xhr, props.config, getCurrentUser(props.config, props.user));
-                                    }
-                                }).done((msg) => {
-                                    if (msg && Number(msg.status) === 200) {
+                                ScouterApi.getPaperPreset(_sconf)
+                                .done((msg) => {
+                                    if (msg && msg.status === "200") {
                                         if (msg.result) {
-                                            let presets = JSON.parse(msg.result);
+                                            let presets = msg.result;
                                             if (presets && presets.length > 0) {
                                                 presets.forEach(serverPreset => {
                                                     if (serverPreset.name === presetName) {
@@ -562,20 +571,12 @@ class Controller extends Component {
                                 });
 
                             } else {
-                                jQuery.ajax({
-                                    method: "GET",
-                                    async: false,
-                                    url: getHttpProtocol(this.props.config) + '/scouter/v1/object?serverId=' + server.id,
-                                    xhrFields: getWithCredentials(props.config),
-                                    beforeSend: function (xhr) {
-                                        setAuthHeader(xhr, props.config, getCurrentUser(props.config, props.user));
-                                    }
-                                }).done(function (msg) {
+                                ScouterApi.getSyncInstanceObjects(_sconf)
+                                .done(msg => {
                                     objects = msg.result;
-
                                     if (objects && objects.length > 0) {
-
                                         objects.forEach((instance) => {
+
                                             urlObjectHashes.forEach((objHash) => {
                                                 if (objHash === Number(instance.objHash)) {
                                                     selectedObjects.push(instance);
@@ -590,11 +591,10 @@ class Controller extends Component {
                                         })
                                     }
                                 }).fail(function (xhr, textStatus, errorThrown) {
-                                    errorHandler(xhr, textStatus, errorThrown, that.props, "setTargetFromUrl_1", true);
+                                    errorHandler(xhr, textStatus, errorThrown, this.props, "load Instance Object", true);
                                 });
                             }
                         });
-
                         if (selectedObjects.length > 0) {
                             selectedObjects.sort((a, b) => a.objName < b.objName ? -1 : 1);
 
@@ -612,7 +612,7 @@ class Controller extends Component {
 
                             AgentColor.setInstances(selectedObjects, this.props.config.colorType);
                             this.props.setTarget(selectedObjects);
-
+                            this.props.setServerId([{id:activeServerId,obj:objects}]);
                         } else {
                             this.setState({
                                 servers: servers
@@ -627,7 +627,7 @@ class Controller extends Component {
                 }
 
             }).fail((xhr, textStatus, errorThrown) => {
-                errorHandler(xhr, textStatus, errorThrown, that.props, "setTargetFromUrl_2", false);
+                errorHandler(xhr, textStatus, errorThrown, this.props, "setTargetFromUrl_2", false);
             });
         }
     };
@@ -640,11 +640,9 @@ class Controller extends Component {
             loading: true
         });
 
-        jQuery.ajax({
-            method: "GET",
-            async: true,
-            url: getHttpProtocol(config) + '/scouter/v1/info/server'
-        }).done((msg) => {
+        const conf = common.confBuilder(getHttpProtocol(config),config,this.props.user,null);
+        ScouterApi.getConnectedServer(conf)
+        .done(msg => {
 
             let servers = msg.result;
 
@@ -720,7 +718,11 @@ class Controller extends Component {
                 servers[i].selectedObjectCount = selectedObjectCount;
             }
         }
-
+        Object.keys(selectedObjects).forEach(_key =>{
+            if(!selectedObjects[_key].serverId){
+                selectedObjects[_key].serverId = this.state.activeServerId;
+            }
+        });
         this.setState({
             servers: servers,
             selectedObjects: selectedObjects
@@ -745,7 +747,7 @@ class Controller extends Component {
     };
 
     getIconOrObjectType = (instance) => {
-        let objType = this.props.counterInfo.objTypesMap[instance.objType];
+        let objType = this.state.counterInfo.objTypesMap[instance.objType];
         let icon;
         if (objType) {
             icon = objType.icon ? objType.icon : instance.objType;
@@ -1027,6 +1029,7 @@ class Controller extends Component {
     render() {
         let menu = this.props.menu.replace("/", "");
         return (
+            <div>
             <article className={"controller-wrapper scrollbar noselect " + this.props.control.Controller + " " + menu + "-menu"}>
                 <Logo></Logo>
                 <div className="controller-tabs">
@@ -1148,7 +1151,7 @@ class Controller extends Component {
                         </div>
                         <div className="row control">
                             <div>
-                                <LayoutManager visible={true}></LayoutManager>
+                                <LayoutManager visible={this.props.control.Controller === "max"}></LayoutManager>
                             </div>
                         </div>
                     </div>
@@ -1171,6 +1174,7 @@ class Controller extends Component {
                     <PaperControl addPaper={this.addPaper} addPaperAndAddMetric={this.addPaperAndAddMetric} clearLayout={this.clearLayout} fixedControl={this.state.fixedControl} toggleRangeControl={this.toggleRangeControl} realtime={this.props.range.realTime} alert={this.state.alert} clearAllAlert={this.clearAllAlert} clearOneAlert={this.clearOneAlert} setRewind={this.setRewind} showAlert={this.state.showAlert} toggleShowAlert={this.toggleShowAlert}/>
                 </div>
                 }
+            </article>
                 {this.state.selector &&
                 <InstanceSelector onFilterChange={this.onFilterChange}
                                   clearFilter={this.clearFilter}
@@ -1182,6 +1186,7 @@ class Controller extends Component {
                                   selectedObjects={this.state.selectedObjects}
                                   filter={this.state.filter}
                                   loading={this.state.loading}
+                                  counterInfo={this.state.counterInfo}
                                   onServerClick={this.onServerClick}
                                   instanceClick={this.instanceClick}
                                   setObjects={this.setObjects}
@@ -1193,14 +1198,14 @@ class Controller extends Component {
 
                 {this.state.preset &&
                 <PresetManager visible={this.state.preset}
+                               activeServerId={this.state.activeServerId}
                                togglePresetManager={this.togglePresetManager}
                                closeSelectorPopup={this.closeSelectorPopup}
                                toggleSelectorVisible={this.toggleSelectorVisible}
                                setObjects={this.setObjects}
                                applyPreset={this.applyPreset}/>
                 }
-
-            </article>
+            </div>
         );
     }
 }
@@ -1219,7 +1224,8 @@ let mapStateToProps = (state) => {
         layouts: state.paper.layouts,
         layoutChangeTime: state.paper.layoutChangeTime,
         topologyOption: state.topologyOption,
-        presetName: state.presetName
+        presetName: state.presetName,
+        serverId: state.serverId
     };
 };
 
@@ -1242,6 +1248,10 @@ let mapDispatchToProps = (dispatch) => {
         setPresetName: (preset) => {
             localStorage.setItem("preset", JSON.stringify(preset));
             return dispatch(setPresetName(preset));
+        },
+        setServerId:(activeServer) => {
+            localStorage.setItem("activeServerId", JSON.stringify(activeServer));
+            return dispatch(setServerId(activeServer));
         }
     };
 };

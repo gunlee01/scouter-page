@@ -1,4 +1,5 @@
-[![Englsh](https://img.shields.io/badge/language-English-orange.svg)](README.md) [![Korean](https://img.shields.io/badge/language-Korean-blue.svg)](README_kr.md)
+[![Englsh](https://img.shields.io/badge/language-English-orange.svg)](README.md) [![Korean](https://img.shields.io/badge/language-Korean-blue.svg)](README_kr.md) [![Docker pulls](https://img.shields.io/docker/pulls/scouterapm/scouter-paper.svg)](
+https://hub.docker.com/r/scouterapm/scouter-paper)
 
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/scouter-project/scouter/issues)
 
@@ -17,6 +18,8 @@ SCOUTER PAPER is a dashboard software that utilizes the SCOUTER WEB API, an open
 - Outstanding extendable
   - You can add performance information of various software through interworking with Telegraph, including metric of SCOUTER which is basically provided, and it is possible to configure tens of thousands of combinations of dashboards by combining them.
 
+This project is licensed under the terms of the apache-2.0 license.
+
 ## How to build
 For build, npm must be installed first. 
  1. clone https://github.com/scouter-contrib/scouter-paper.git
@@ -33,6 +36,9 @@ You can download the latest version from the page below.
 
 ## DockerHub
 - [scouter-paper](https://hub.docker.com/r/scouterapm/scouter-paper)
+
+## DEMO
+- [live-demo](http://demo.scouterapm.com:6188/extweb/index.html)
  
 ## Screenshots
 - HOME
